@@ -101,7 +101,7 @@ function colorToCSS(c) {
 
   const lower = c.toLowerCase();
 
-  if (lower === "white" || lower === "whi") return "#d5d5d5";   // better visibility
+  if (lower === "white" || lower === "whi") return "#d5d5d5";   // slightly lighter grey
   if (lower === "alu") return "#8a8a8a";                        // aluminum grey
   if (lower === "yellow" || lower === "yel") return "#c7a400";  // darker yellow
   if (lower === "silver") return "#aaa";
@@ -115,9 +115,6 @@ function coloredLabel(c) {
   return `<span style="color:${css}; font-weight:600;">${c}</span>`;
 }
 
-
-
-// rest
 function extractColors() {
   colors.clear();
 
@@ -195,7 +192,6 @@ function birdMatches(b) {
   return true;
 }
 
-
 // ========================================================================
 // TABLE RENDERING
 // ========================================================================
@@ -215,9 +211,9 @@ function renderBirds() {
       <td>${b.name} <span class="tag">${b.bird_id}</span></td>
       <td>${b.sex}/${b.age}</td>
       <td>${b.territory_name} (${dist}) / ${b.banded_on}</td>
-     <td>
+      <td>
         ${coloredLabel(b.R_top)} / ${coloredLabel(b.R_bottom)} – ${coloredLabel(b.L_top)} / ${coloredLabel(b.L_bottom)}
-     </td>
+      </td>
       <td>
         <button class="btn btn-primary" data-id="${b.bird_id}" data-action="sighted">beobachtet</button>
         <button class="btn btn-secondary" data-id="${b.bird_id}" data-action="maybe">unsicher</button>
@@ -247,7 +243,9 @@ function setupMainButtons() {
   document.getElementById("btn-reset").onclick = () => {
     selectedLeft = [];
     selectedRight = [];
-    document.querySelectorAll(".color-button").forEach((b) => b.classList.remove("selected"));
+    document
+      .querySelectorAll(".color-button")
+      .forEach((b) => b.classList.remove("selected"));
     renderBirds();
   };
 
@@ -277,6 +275,7 @@ function setupMainButtons() {
 
 function openReport(id, action) {
   const b = birds.find((x) => x.bird_id === id);
+  if (!b) return;
   openReportObject(b, action);
 }
 
@@ -291,6 +290,12 @@ function openReportObject(bird, action) {
 
   openPopup("popup-report-bg");
   initMap();
+}
+
+function updateCoordsDisplay(lat, lng) {
+  const el = document.getElementById("coords-display");
+  if (!el) return;
+  el.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
 }
 
 function initMap() {
@@ -314,7 +319,7 @@ function initMap() {
   // Initial GPS attempt
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      pos => {
+      (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         map.setView([lat, lng], 13);
@@ -327,57 +332,38 @@ function initMap() {
         updateCoordsDisplay(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
       }
     );
+  } else {
+    map.setView(DEFAULT_CENTER, 12);
+    marker.setLatLng(DEFAULT_CENTER);
+    updateCoordsDisplay(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
   }
 
   // Ensure map renders correctly
   setTimeout(() => map.invalidateSize(), 150);
 
+  // Save report button
   document.getElementById("btn-save-report").onclick = saveReport;
 
   // FIND ME BUTTON
-  document.getElementById("btn-find-me").onclick = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          map.setView([lat, lng], 15);
-          marker.setLatLng([lat, lng]);
-          updateCoordsDisplay(lat, lng);
-        },
-        () => alert("GPS konnte nicht abgerufen werden.")
-      );
-    } else {
-      alert("GPS wird von diesem Gerät nicht unterstützt.");
-    }
-  };
-}
-
-  function updateCoordsDisplay(lat, lng) {
-  const el = document.getElementById("coords-display");
-  if (!el) return;
-  el.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
-}
-
-
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        map.setView([lat, lng], 13);
-        marker.setLatLng([lat, lng]);
-      },
-      () => {
-        map.setView(DEFAULT_CENTER, 12);
-        marker.setLatLng(DEFAULT_CENTER);
+  const findMeBtn = document.getElementById("btn-find-me");
+  if (findMeBtn) {
+    findMeBtn.onclick = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            map.setView([lat, lng], 15);
+            marker.setLatLng([lat, lng]);
+            updateCoordsDisplay(lat, lng);
+          },
+          () => alert("GPS konnte nicht abgerufen werden.")
+        );
+      } else {
+        alert("GPS wird von diesem Gerät nicht unterstützt.");
       }
-    );
+    };
   }
-
-  setTimeout(() => map.invalidateSize(), 150);
-
-  document.getElementById("btn-save-report").onclick = saveReport;
 }
 
 // ========================================================================
