@@ -95,6 +95,20 @@ function parseCSV(text) {
 // COLOR EXTRACTION + BUTTONS
 // ========================================================================
 
+// text color for rings' list
+function colorToCSS(c) {
+  if (!c) return "black";
+
+  const lower = c.toLowerCase();
+
+  if (lower === "white" || lower === "whi") return "#ccc";   // better visibility
+  if (lower === "alu") return "#888";                        // aluminum grey
+  if (lower === "silver") return "#aaa";
+
+  return lower; // use raw color name for others
+}
+
+// rest
 function extractColors() {
   colors.clear();
 
