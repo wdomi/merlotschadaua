@@ -108,6 +108,14 @@ function colorToCSS(c) {
   return lower; // use raw color name for others
 }
 
+function coloredLabel(c) {
+  if (!c) return "";
+  const css = colorToCSS(c);
+  return `<span style="color:${css}; font-weight:600;">${c}</span>`;
+}
+
+
+
 // rest
 function extractColors() {
   colors.clear();
@@ -196,7 +204,9 @@ function renderBirds() {
       <td>${b.name} <span class="tag">${b.bird_id}</span></td>
       <td>${b.sex}/${b.age}</td>
       <td>${b.territory_name} (${dist}) / ${b.banded_on}</td>
-      <td>${b.R_top}/${b.R_bottom} – ${b.L_top}/${b.L_bottom}</td>
+     <td>
+        ${coloredLabel(b.R_top)} / ${coloredLabel(b.R_bottom)} – ${coloredLabel(b.L_top)} / ${coloredLabel(b.L_bottom)}
+     </td>
       <td>
         <button class="btn btn-primary" data-id="${b.bird_id}" data-action="sighted">beobachtet</button>
         <button class="btn btn-secondary" data-id="${b.bird_id}" data-action="maybe">unsicher</button>
