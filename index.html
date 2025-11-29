@@ -150,10 +150,19 @@
       <p id="popup-bird-info"></p>
       <div id="map"></div>
 
-      <button id="btn-save-report" class="btn btn-primary" style="margin-top:0.5rem;">Speichern</button>
-      <button class="btn btn-ghost" onclick="closePopup('popup-report-bg')">Schliessen</button>
-    </div>
-  </div>
+                <!-- NEW: coordinate display -->
+          <div id="coords-display" style="margin-top:0.4rem; font-size:0.85rem;">
+            Lat: — , Lng: —
+          </div>
+          
+          <!-- NEW: find-me button -->
+          <button id="btn-find-me" class="btn btn-secondary" style="margin-top:0.5rem;">Finde mich</button>
+          
+          <button id="btn-save-report" class="btn btn-primary" style="margin-top:0.5rem;">Speichern</button>
+          <button class="btn btn-ghost" onclick="closePopup('popup-report-bg')">Schliessen</button>
+          
+        </div>
+      </div>
 
   <!-- Latest popup -->
   <div id="popup-latest-bg" class="popup-bg">
