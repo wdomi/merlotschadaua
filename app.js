@@ -303,7 +303,62 @@ function initMap() {
     ).addTo(map);
 
     marker = L.marker(DEFAULT_CENTER, { draggable: true }).addTo(map);
+
+    // Update coordinates when marker is dragged
+    marker.on("dragend", () => {
+      const { lat, lng } = marker.getLatLng();
+      updateCoordsDisplay(lat, lng);
+    });
   }
+
+  // Initial GPS attempt
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        map.setView([lat, lng], 13);
+        marker.setLatLng([lat, lng]);
+        updateCoordsDisplay(lat, lng);
+      },
+      () => {
+        map.setView(DEFAULT_CENTER, 12);
+        marker.setLatLng(DEFAULT_CENTER);
+        updateCoordsDisplay(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
+      }
+    );
+  }
+
+  // Ensure map renders correctly
+  setTimeout(() => map.invalidateSize(), 150);
+
+  document.getElementById("btn-save-report").onclick = saveReport;
+
+  // FIND ME BUTTON
+  document.getElementById("btn-find-me").onclick = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          map.setView([lat, lng], 15);
+          marker.setLatLng([lat, lng]);
+          updateCoordsDisplay(lat, lng);
+        },
+        () => alert("GPS konnte nicht abgerufen werden.")
+      );
+    } else {
+      alert("GPS wird von diesem Gerät nicht unterstützt.");
+    }
+  };
+}
+
+  function updateCoordsDisplay(lat, lng) {
+  const el = document.getElementById("coords-display");
+  if (!el) return;
+  el.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+}
+
 
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
