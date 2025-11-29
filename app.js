@@ -180,11 +180,21 @@ function birdMatches(b) {
   const r = [b.R_top, b.R_bottom];
   const l = [b.L_top, b.L_bottom];
 
-  if (selectedRight.length && !selectedRight.some((c) => r.includes(c))) return false;
-  if (selectedLeft.length && !selectedLeft.some((c) => l.includes(c))) return false;
+  // RIGHT LEG — AND logic
+  if (selectedRight.length > 0) {
+    const allRightMatch = selectedRight.every((c) => r.includes(c));
+    if (!allRightMatch) return false;
+  }
+
+  // LEFT LEG — AND logic
+  if (selectedLeft.length > 0) {
+    const allLeftMatch = selectedLeft.every((c) => l.includes(c));
+    if (!allLeftMatch) return false;
+  }
 
   return true;
 }
+
 
 // ========================================================================
 // TABLE RENDERING
