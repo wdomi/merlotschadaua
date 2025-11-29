@@ -2,650 +2,168 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Merlotschadaua – Beobachtungen</title>
 
   <!-- PWA manifest -->
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#2a4b7c" />
 
-  <!-- Minimal styling, mobile-first -->
-  <style>
-    :root {
-      --primary: #2a4b7c;
-      --primary-light: #3f6bb4;
-      --accent: #f0b400;
-      --bg: #f5f5f5;
-      --text: #222;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 0.75rem;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
-    header {
-      margin-bottom: 0.75rem;
-    }
-    h1 {
-      font-size: 1.4rem;
-      margin: 0 0 0.4rem 0;
-    }
-    .subtitle {
-      font-size: 0.85rem;
-      color: #555;
-    }
-
-    .layout {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .panel {
-      background: #fff;
-      border-radius: 0.75rem;
-      padding: 0.75rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    }
-
-    .panel h3 {
-      margin-top: 0;
-      font-size: 1rem;
-    }
-
-    .legs {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    .leg-block h3 {
-      margin-bottom: 0.4rem;
-    }
-
-    .color-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-    }
-
-    .color-button {
-      padding: 0.4rem 0.6rem;
-      border-radius: 999px;
-      border: 1px solid rgba(0,0,0,0.2);
-      min-width: 2.4rem;
-      min-height: 2.4rem;
-      font-size: 0.8rem;
-      color: #fff;
-      cursor: pointer;
-      outline: none;
-    }
-    .color-button.selected {
-      border: 2px solid #000;
-      box-shadow: 0 0 0 2px rgba(0,0,0,0.2);
-    }
-
-    .main-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    .btn {
-      border-radius: 999px;
-      border: none;
-      padding: 0.55rem 0.9rem;
-      font-size: 0.85rem;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.25rem;
-      outline: none;
-    }
-    .btn-primary {
-      background: var(--primary);
-      color: #fff;
-    }
-    .btn-secondary {
-      background: #fff;
-      color: var(--primary);
-      border: 1px solid var(--primary);
-    }
-    .btn-ghost {
-      background: transparent;
-      border: 1px solid #ccc;
-      color: #444;
-    }
-
-    h2 {
-      margin: 0.5rem 0 0.3rem 0;
-      font-size: 1rem;
-    }
-
-    .table-wrapper {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 600px;
-      font-size: 0.8rem;
-      background: #fff;
-      border-radius: 0.75rem;
-      overflow: hidden;
-    }
-    thead {
-      background: #e3ebf7;
-    }
-    th, td {
-      padding: 0.45rem 0.4rem;
-      border-bottom: 1px solid #eee;
-      text-align: left;
-      vertical-align: top;
-    }
-    th {
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    tbody tr:nth-child(even) {
-      background: #fafafa;
-    }
-
-    .actions-cell button {
-      margin: 0.1rem 0;
-      width: 100%;
-    }
-
-    .tag {
-      display: inline-block;
-      padding: 0.15rem 0.4rem;
-      border-radius: 999px;
-      background: #eee;
-      font-size: 0.7rem;
-    }
-
-    /* Popups */
-    .popup-bg {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-    }
-    .popup {
-      background: #fff;
-      border-radius: 0.75rem;
-      padding: 0.75rem;
-      width: min(600px, 94vw);
-      max-height: 90vh;
-      overflow: auto;
-    }
-    .popup h3 {
-      margin-top: 0;
-      font-size: 1rem;
-    }
-    .popup-footer {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.4rem;
-      margin-top: 0.5rem;
-      flex-wrap: wrap;
-    }
-
-    #map {
-      height: 300px;
-      width: 100%;
-      border-radius: 0.5rem;
-      margin-top: 0.35rem;
-      overflow: hidden;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.1rem 0.4rem;
-      border-radius: 999px;
-      background: #eef2ff;
-      font-size: 0.7rem;
-      margin-top: 0.2rem;
-    }
-
-    .status-banner {
-      font-size: 0.75rem;
-      margin-top: 0.3rem;
-      padding: 0.3rem 0.45rem;
-      border-radius: 0.5rem;
-      background: #fff7d1;
-      border: 1px solid #e7d18a;
-    }
-
-    @media (min-width: 720px) {
-      .layout {
-        flex-direction: row;
-        align-items: flex-start;
-      }
-      .legs {
-        flex-direction: row;
-      }
-      .panel {
-        flex: 1;
-      }
-    }
-  </style>
-
+  <!-- Leaflet maps -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --primary: #2a4b7c;
+      --bg: #f5f5f5;
+    }
+    body {
+      margin: 0;
+      padding: 0.75rem;
+      background: var(--bg);
+      font-family: system-ui, sans-serif;
+    }
+    h1 {
+      margin: 0 0 0.4rem;
+      font-size: 1.4rem;
+    }
+    .panel {
+      background: #fff;
+      padding: 0.75rem;
+      border-radius: 0.75rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .color-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .color-button {
+      padding: 0.4rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.2);
+      color: #fff;
+      cursor: pointer;
+    }
+    .color-button.selected {
+      border: 2px solid black;
+    }
+    .btn {
+      padding: 0.55rem 0.9rem;
+      border-radius: 999px;
+      cursor: pointer;
+      border: none;
+      margin: 0.2rem;
+      font-size: 0.85rem;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: #fff; border: 1px solid var(--primary); color: var(--primary); }
+    .btn-ghost { background: #eee; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th, td {
+      padding: 0.4rem;
+      border-bottom: 1px solid #ddd;
+    }
+    thead { background: #e3ebf7; }
+
+    .popup-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .popup {
+      background: white;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      width: min(600px, 95vw);
+      max-height: 90vh;
+      overflow: auto;
+    }
+    #map {
+      height: 300px;
+      border-radius: 0.5rem;
+      margin-top: 0.5rem;
+    }
+  </style>
 </head>
+
 <body>
-  <header>
-    <h1>Merlotschadaua – Beobachtungen</h1>
-    <div class="subtitle">Farbringe auswählen, Vogel suchen & Beobachtung melden.</div>
-  </header>
+  <h1>Merlotschadaua – Beobachtungen</h1>
 
-  <main>
-    <div class="layout">
-      <section class="panel">
-        <div class="legs">
-          <div class="leg-block">
-            <h3>Rechtes Bein</h3>
-            <div class="color-buttons" id="right-leg"></div>
-          </div>
-          <div class="leg-block">
-            <h3>Linkes Bein</h3>
-            <div class="color-buttons" id="left-leg"></div>
-          </div>
-        </div>
+  <div class="panel">
+    <strong>Rechtes Bein</strong>
+    <div id="right-leg" class="color-buttons"></div>
 
-        <div class="main-actions" style="margin-top:0.75rem;">
-          <button id="btn-reset" class="btn btn-ghost">Reset</button>
-          <button id="btn-report" class="btn btn-primary">
-            Beobachtung melden
-          </button>
-          <button id="btn-unringed" class="btn btn-secondary">
-            unberingt melden
-          </button>
-          <button id="btn-latest" class="btn btn-ghost">
-            Letzte Beobachtungen
-          </button>
-        </div>
-        <div id="offline-status" class="status-banner" style="display:none;">
-          Offline – Beobachtungen werden lokal gespeichert und bei nächster
-          Verbindung gesendet.
-        </div>
-      </section>
+    <br>
+    <strong>Linkes Bein</strong>
+    <div id="left-leg" class="color-buttons"></div>
 
-      <section class="panel" style="flex:2;">
-        <h2>Alle Vögel</h2>
-        <div class="table-wrapper">
-          <table id="birds-table">
-            <thead>
-              <tr>
-                <th>Name (ID)</th>
-                <th>Geschl. / Alter</th>
-                <th>Revier (Dist m) / beringt am</th>
-                <th>R↑/↓ – L↑/↓</th>
-                <th>Aktionen</th>
-              </tr>
-            </thead>
-            <tbody id="birds-body"></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  </main>
+    <br>
+    <button id="btn-reset" class="btn btn-ghost">Reset</button>
+    <button id="btn-report" class="btn btn-primary">Beobachtung melden</button>
+    <button id="btn-unringed" class="btn btn-secondary">unberingt melden</button>
+    <button id="btn-latest" class="btn btn-ghost">Letzte Beobachtungen</button>
+  </div>
 
-  <!-- Popup: Report -->
+  <div class="panel">
+    <h3>Alle Vögel</h3>
+    <table id="birds-table">
+      <thead>
+        <tr>
+          <th>Name (ID)</th>
+          <th>Geschl. / Alter</th>
+          <th>Revier (Dist m) / beringt am</th>
+          <th>R↑/↓ – L↑/↓</th>
+          <th>Aktion</th>
+        </tr>
+      </thead>
+      <tbody id="birds-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Report popup -->
   <div id="popup-report-bg" class="popup-bg">
     <div class="popup">
       <h3>Beobachtung melden</h3>
       <p id="popup-bird-info"></p>
-      <div class="chip" id="popup-action-chip"></div>
-
-      <div style="margin-top:0.5rem; font-size:0.8rem;">
-        Standort wählen (GPS oder Marker verschieben):
-      </div>
       <div id="map"></div>
 
-      <div class="popup-footer">
-        <button class="btn btn-ghost" onclick="closePopup('popup-report-bg')">
-          Schliessen
-        </button>
-        <button id="btn-save-report" class="btn btn-primary">
-          Speichern
-        </button>
-      </div>
+      <button id="btn-save-report" class="btn btn-primary" style="margin-top:0.5rem;">Speichern</button>
+      <button class="btn btn-ghost" onclick="closePopup('popup-report-bg')">Schliessen</button>
     </div>
   </div>
 
-  <!-- Popup: Latest -->
+  <!-- Latest popup -->
   <div id="popup-latest-bg" class="popup-bg">
     <div class="popup">
       <h3>Letzte Beobachtungen</h3>
-      <div id="latest-list" style="font-size:0.8rem;"></div>
-      <div class="popup-footer">
-        <button class="btn btn-ghost" onclick="closePopup('popup-latest-bg')">
-          Schliessen
-        </button>
-      </div>
+      <div id="latest-list"></div>
+      <button class="btn btn-ghost" onclick="closePopup('popup-latest-bg')">Schliessen</button>
     </div>
   </div>
 
+  <!-- Load the main JS file -->
+  <script src="/app.js"></script>
+
+  <!-- Register the service worker -->
   <script>
-    // ---------------- GLOBAL STATE ----------------
-    let birds = [];
-    let colors = new Set();
-    let selectedRight = [];
-    let selectedLeft = [];
-    let currentBird = null; // {bird, action}
-    let map, marker;
-    const DEFAULT_CENTER = [46.7000, 10.0833]; // Zernez-ish
-
-    const OFFLINE_QUEUE_KEY = "merlotschadaua_offline_queue";
-
-    // ---------------- CSV LOADING ----------------
-    fetch("data/view_birdsCSV_apps.csv")
-      .then((r) => r.text())
-      .then((csv) => parseCSV(csv))
-      .then(() => {
-        extractColors();
-        buildColorButtons();
-        renderBirds();
-      })
-      .catch((e) => console.error("CSV error:", e));
-
-    function parseCSV(text) {
-      const lines = text.trim().split("\n");
-      if (!lines.length) return;
-      const header = lines[0].split(",");
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(",");
-        if (!cols[0]) continue;
-        const row = {};
-        header.forEach((h, idx) => (row[h] = cols[idx] ?? ""));
-        if (row.bird_id) birds.push(row);
-      }
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js");
     }
-
-    // ---------------- COLORS ----------------
-    function extractColors() {
-      birds.forEach((b) => {
-        [b.R_top, b.R_bottom, b.L_top, b.L_bottom].forEach((c) => {
-          if (c && c !== "NULL") colors.add(c);
-        });
-      });
-    }
-
-    function buildColorButtons() {
-      const right = document.getElementById("right-leg");
-      const left = document.getElementById("left-leg");
-
-      colors.forEach((color) => {
-        const btnR = document.createElement("button");
-        btnR.className = "color-button";
-        btnR.style.background = color;
-        btnR.title = color;
-        btnR.onclick = () => toggleColor("right", color, btnR);
-        right.appendChild(btnR);
-
-        const btnL = document.createElement("button");
-        btnL.className = "color-button";
-        btnL.style.background = color;
-        btnL.title = color;
-        btnL.onclick = () => toggleColor("left", color, btnL);
-        left.appendChild(btnL);
-      });
-    }
-
-    function toggleColor(side, color, btn) {
-      const arr = side === "right" ? selectedRight : selectedLeft;
-      if (arr.includes(color)) {
-        arr.splice(arr.indexOf(color), 1);
-        btn.classList.remove("selected");
-      } else if (arr.length < 2) {
-        arr.push(color);
-        btn.classList.add("selected");
-      }
-      renderBirds();
-    }
-
-    // ---------------- FILTERING ----------------
-    function birdMatches(b) {
-      const rcolors = [b.R_top, b.R_bottom];
-      const lcolors = [b.L_top, b.L_bottom];
-
-      if (selectedRight.length > 0 &&
-          !selectedRight.some((c) => rcolors.includes(c))) return false;
-      if (selectedLeft.length > 0 &&
-          !selectedLeft.some((c) => lcolors.includes(c))) return false;
-
-      return true;
-    }
-
-    // ---------------- RENDER TABLE ----------------
-    function renderBirds() {
-      const body = document.getElementById("birds-body");
-      body.innerHTML = "";
-
-      birds.filter(birdMatches).forEach((b) => {
-        const tr = document.createElement("tr");
-        const dist = b["dist Punt dal Gal (m)"] || "";
-        tr.innerHTML = `
-          <td>${b.name || ""} <span class="tag">${b.bird_id}</span></td>
-          <td>${b.sex || ""} / ${b.age || ""}</td>
-          <td>${b.territory_name || b.territory || ""} (${dist}) / ${b.banded_on || ""}</td>
-          <td>${b.R_top || ""}/${b.R_bottom || ""} – ${b.L_top || ""}/${b.L_bottom || ""}</td>
-          <td class="actions-cell">
-            <button class="btn btn-primary"
-              onclick="openReport('${b.bird_id}','sighted')">beobachtet</button>
-            <button class="btn btn-secondary"
-              onclick="openReport('${b.bird_id}','maybe')">unsicher</button>
-          </td>
-        `;
-        body.appendChild(tr);
-      });
-    }
-
-    // ---------------- RESET ----------------
-    document.getElementById("btn-reset").onclick = () => {
-      selectedLeft = [];
-      selectedRight = [];
-      document
-        .querySelectorAll(".color-button")
-        .forEach((b) => b.classList.remove("selected"));
-      renderBirds();
-    };
-
-    // Global "Beobachtung melden" – reuse last selection
-    document.getElementById("btn-report").onclick = () => {
-      if (!currentBird) {
-        alert("Bitte zuerst in der Liste einen Vogel (beobachtet/unsicher) auswählen.");
-        return;
-      }
-      openReport(currentBird.bird.bird_id, currentBird.action);
-    };
-
-    // Unringed button: pseudo bird
-    document.getElementById("btn-unringed").onclick = () => {
-      const pseudo = {
-        bird_id: "unringed",
-        name: "unberingt",
-        territory_name: "",
-      };
-      openReportForBirdObj(pseudo, "maybe");
-    };
-
-    // ---------------- REPORT POPUP ----------------
-    function openReport(bird_id, action) {
-      const b = birds.find((x) => x.bird_id === bird_id);
-      if (!b) return;
-      openReportForBirdObj(b, action);
-    }
-
-    function openReportForBirdObj(b, action) {
-      currentBird = { bird: b, action };
-
-      const info = document.getElementById("popup-bird-info");
-      if (b.bird_id === "unringed") {
-        info.textContent = "Unberingter Vogel";
-      } else {
-        info.textContent = `${b.name || ""} (${b.bird_id})`;
-      }
-
-      const chip = document.getElementById("popup-action-chip");
-      chip.textContent = action === "sighted" ? "beobachtet" : "unsicher";
-
-      openPopup("popup-report-bg");
-      initMap();
-    }
-
-    function initMap() {
-      if (!map) {
-        map = L.map("map").setView(DEFAULT_CENTER, 12);
-        // Swisstopo WMTS – may need an API key depending on your account:
-        L.tileLayer(
-          "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg",
-          { maxZoom: 19 }
-        ).addTo(map);
-
-        marker = L.marker(DEFAULT_CENTER, { draggable: true }).addTo(map);
-      }
-
-      // try GPS
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            map.setView([lat, lng], 13);
-            marker.setLatLng([lat, lng]);
-          },
-          () => {
-            map.setView(DEFAULT_CENTER, 12);
-            marker.setLatLng(DEFAULT_CENTER);
-          }
-        );
-      } else {
-        map.setView(DEFAULT_CENTER, 12);
-        marker.setLatLng(DEFAULT_CENTER);
-      }
-
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 200);
-    }
-
-    document.getElementById("btn-save-report").onclick = async () => {
-      if (!currentBird || !marker) return;
-      const { lat, lng } = marker.getLatLng();
-      const b = currentBird.bird;
-
-      const payload = {
-        mode: "create",
-        bird_name: b.name || (b.bird_id === "unringed" ? "unringed" : ""),
-        bird_id: b.bird_id,
-        action: currentBird.action, // "sighted" or "maybe"
-        latitude: lat,
-        longitude: lng,
-        territory: b.territory_name || b.territory || "",
-      };
-
-      if (!navigator.onLine) {
-        addToOfflineQueue(payload);
-        closePopup("popup-report-bg");
-        alert("Offline – Beobachtung wurde lokal gespeichert.");
-        return;
-      }
-
-      try {
-        await sendToServer(payload);
-        closePopup("popup-report-bg");
-        alert("Beobachtung gespeichert.");
-      } catch (e) {
-        console.error(e);
-        alert("Fehler beim Speichern.");
-      }
-    };
-
-    async function sendToServer(payload) {
-      const res = await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Server error");
-      return res.json();
-    }
-
-    // ---------------- OFFLINE QUEUE ----------------
-    function addToOfflineQueue(entry) {
-      const list = getOfflineQueue();
-      list.push({ entry, ts: Date.now() });
-      localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(list));
-    }
-    function getOfflineQueue() {
-      const s = localStorage.getItem(OFFLINE_QUEUE_KEY);
-      if (!s) return [];
-      try {
-        return JSON.parse(s);
-      } catch {
-        return [];
-      }
-    }
-
-    async function flushOfflineQueue() {
-      const list = getOfflineQueue();
-      if (!list.length || !navigator.onLine) return;
-      for (const item of list) {
-        try {
-          await sendToServer(item.entry);
-        } catch (e) {
-          console.error("Failed to flush entry", e);
-          return; // stop here, try again later
-        }
-      }
-      localStorage.removeItem(OFFLINE_QUEUE_KEY);
-    }
-
-    function updateOfflineBanner() {
-      const banner = document.getElementById("offline-status");
-      if (!navigator.onLine) {
-        banner.style.display = "block";
-      } else {
-        banner.style.display = getOfflineQueue().length ? "block" : "none";
-        if (navigator.onLine) flushOfflineQueue();
-      }
-    }
-
-    window.addEventListener("online", () => {
-      updateOfflineBanner();
-    });
-    window.addEventListener("offline", () => {
-      updateOfflineBanner();
-    });
-    updateOfflineBanner();
-    flushOfflineQueue();
-
-    // ---------------- LATEST OBSERVATIONS ----------------
-    document.getElementById("btn-latest").onclick = async () => {
-      openPopup("popup-latest-bg");
-      const listEl = document.getElementById("latest-list");
-      listEl.textContent = "Lade...";
-
-      try {
-        const res = await fetch("/api/submit?mode=list");
-        const data = await res.json();
-        listEl.innerHTML = "";
-
-        data.forEach((row) => {
-          const div = document.createElement("div");
-          div.style.borderBottom = "
+  </script>
+</body>
+</html>
