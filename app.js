@@ -51,14 +51,22 @@ function parseCSV(text) {
   const lines = text.trim().split("\n");
   if (!lines.length) return;
 
-  const header = lines[0].split(",");
+  // Remove quotes from headers
+  const header = lines[0]
+    .split(",")
+    .map(h => h.replace(/^"|"$/g, "").trim());
 
   for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(",");
+    // Respect quoted CSV with commas inside
+    const cols = lines[i]
+      .match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
+      .map(v => v.replace(/^"|"$/g, "").trim());
+
     if (!cols[0]) continue;
 
     const row = {};
     header.forEach((h, idx) => (row[h] = cols[idx] ?? ""));
+
     if (row.bird_id && row.bird_id !== "NULL") {
       birds.push(row);
     }
