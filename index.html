@@ -1,1 +1,298 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merlotschadaua – Beobachtungen</title>
+
+<!-- Simple minimal styling -->
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+h2 { margin-top: 30px; }
+.color-button {
+    padding: 8px 12px;
+    margin: 5px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    cursor: pointer;
+    color: white;
+}
+button.selected { border: 3px solid black; }
+#birds-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+#birds-table th, #birds-table td { border: 1px solid #ccc; padding: 6px; }
+.action-btn { padding: 4px 8px; margin: 2px; cursor: pointer; }
+.popup-bg {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); display:none; justify-content: center; align-items: center;
+}
+.popup {
+    background: white; padding: 20px; border-radius: 10px;
+    width: 90%; max-width: 600px;
+}
+</style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+</head>
+<body>
+
+<h1>Merlotschadaua – Beobachtungen</h1>
+
+<div style="display:flex; gap:40px;">
+    <div>
+        <h3>Rechtes Bein</h3>
+        <div id="right-leg"></div>
+    </div>
+    <div>
+        <h3>Linkes Bein</h3>
+        <div id="left-leg"></div>
+    </div>
+</div>
+
+<br>
+
+<button id="btn-reset">Reset</button>
+<button id="btn-report">Beobachtung melden</button>
+<button id="btn-unringed">unberingt melden</button>
+<button id="btn-latest">Letzte Beobachtungen</button>
+
+<h2>Alle Vögel</h2>
+<table id="birds-table">
+<thead>
+<tr>
+    <th>Name (ID)</th>
+    <th>Geschl. / Alter</th>
+    <th>Revier (Dist m) / beringt am</th>
+    <th>R↑/↓ – L↑/↓</th>
+    <th>Aktionen</th>
+</tr>
+</thead>
+<tbody id="birds-body"></tbody>
+</table>
+
+<!-- Popup: Report -->
+<div id="popup-report-bg" class="popup-bg">
+<div class="popup">
+    <h3>Beobachtung melden</h3>
+    <p id="popup-bird-info"></p>
+    <div id="map" style="height:300px;"></div>
+    <br>
+    <button id="btn-save-report">Speichern</button>
+    <button onclick="closePopup('popup-report-bg')">Schliessen</button>
+</div>
+</div>
+
+<!-- Popup: Latest -->
+<div id="popup-latest-bg" class="popup-bg">
+<div class="popup">
+    <h3>Letzte Beobachtungen</h3>
+    <div id="latest-list"></div>
+    <button onclick="closePopup('popup-latest-bg')">Schliessen</button>
+</div>
+</div>
+
+
+<script>
+// -------------------- CSV LOADING --------------------
+let birds = [];
+let colors = new Set();
+let selectedRight = [];
+let selectedLeft = [];
+let currentBird = null;
+let map, marker;
+
+// Load CSV from local repo
+fetch("data/view_birdsCSV_apps.csv")
+    .then(r => r.text())
+    .then(csv => parseCSV(csv))
+    .then(() => {
+        extractColors();
+        buildColorButtons();
+        renderBirds();
+    });
+
+// Simple CSV parser
+function parseCSV(text) {
+    const lines = text.split("\n").map(l => l.split(","));
+    const header = lines[0];
+    for (let i=1; i<lines.length; i++) {
+        const row = {};
+        header.forEach((h, idx) => row[h] = lines[i][idx]);
+        if (row.bird_id) birds.push(row);
+    }
+}
+
+// -------------------- COLORS --------------------
+function extractColors() {
+    birds.forEach(b => {
+        [b.R_top, b.R_bottom, b.L_top, b.L_bottom].forEach(c => { if (c) colors.add(c); });
+    });
+}
+
+function buildColorButtons() {
+    const right = document.getElementById("right-leg");
+    const left = document.getElementById("left-leg");
+    colors.forEach(color => {
+        const b1 = document.createElement("button");
+        b1.className = "color-button";
+        b1.style.background = color;
+        b1.onclick = () => toggleColor("right", color, b1);
+        right.appendChild(b1);
+
+        const b2 = document.createElement("button");
+        b2.className = "color-button";
+        b2.style.background = color;
+        b2.onclick = () => toggleColor("left", color, b2);
+        left.appendChild(b2);
+    });
+}
+
+function toggleColor(side, color, btn) {
+    const arr = side === "right" ? selectedRight : selectedLeft;
+    if (arr.includes(color)) {
+        arr.splice(arr.indexOf(color), 1);
+        btn.classList.remove("selected");
+    } else if (arr.length < 2) {
+        arr.push(color);
+        btn.classList.add("selected");
+    }
+    renderBirds();
+}
+
+// -------------------- FILTERING --------------------
+function birdMatches(b) {
+    const rcolors = [b.R_top, b.R_bottom];
+    const lcolors = [b.L_top, b.L_bottom];
+    if (selectedRight.length > 0 && !selectedRight.some(c => rcolors.includes(c))) return false;
+    if (selectedLeft.length > 0 && !selectedLeft.some(c => lcolors.includes(c))) return false;
+    return true;
+}
+
+// -------------------- RENDER TABLE --------------------
+function renderBirds() {
+    const body = document.getElementById("birds-body");
+    body.innerHTML = "";
+    birds.filter(birdMatches).forEach(b => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${b.name} (${b.bird_id})</td>
+            <td>${b.sex}/${b.age}</td>
+            <td>${b.territory_name} (${b["dist Punt dal Gal (m)"]}) / ${b.banded_on}</td>
+            <td>${b.R_top}/${b.R_bottom} – ${b.L_top}/${b.L_bottom}</td>
+            <td>
+                <button class="action-btn" onclick="openReport('${b.bird_id}','sighted')">beobachtet</button>
+                <button class="action-btn" onclick="openReport('${b.bird_id}','maybe')">unsicher</button>
+            </td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+// -------------------- RESET --------------------
+document.getElementById("btn-reset").onclick = () => {
+    selectedLeft = [];
+    selectedRight = [];
+    document.querySelectorAll(".color-button").forEach(b => b.classList.remove("selected"));
+    renderBirds();
+};
+
+// -------------------- REPORT POPUP --------------------
+function openReport(bird_id, action) {
+    currentBird = { bird_id, action };
+    const b = birds.find(x => x.bird_id === bird_id);
+    document.getElementById("popup-bird-info").innerText =
+        `${b.name} (${b.bird_id}) – Aktion: ${action}`;
+
+    openPopup("popup-report-bg");
+    initMap();
+}
+
+function initMap() {
+    if (!map) {
+        map = L.map('map').setView([46.7000, 10.0833], 12);
+        L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg').addTo(map);
+        marker = L.marker([46.7000,10.0833], {draggable:true}).addTo(map);
+    }
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            map.setView([lat,lng], 13);
+            marker.setLatLng([lat,lng]);
+        },
+        () => {}
+    );
+}
+
+// Save to baserow
+document.getElementById("btn-save-report").onclick = async () => {
+    const { lat, lng } = marker.getLatLng();
+
+    const payload = {
+        field_6258635: "",          // bird_name (optional)
+        field_6258636: currentBird.bird_id,
+        field_6258637: currentBird.action === "sighted" ? 4519311 : 4519312,
+        field_6258639: lat,
+        field_6258640: lng,
+        field_6351349: false
+    };
+
+    await fetch("https://api.baserow.io/api/database/rows/table/742957/?user_field_names=true", {
+        method:"POST",
+        headers: { 
+            "Content-Type":"application/json",
+            "Authorization":"Token YOUR_BASEROW_API_TOKEN"
+        },
+        body: JSON.stringify(payload)
+    });
+
+    closePopup("popup-report-bg");
+};
+
+
+// -------------------- LATEST OBSERVATIONS --------------------
+document.getElementById("btn-latest").onclick = async () => {
+    openPopup("popup-latest-bg");
+    const r = await fetch("https://api.baserow.io/api/database/rows/table/742957/?user_field_names=true", {
+        headers:{ "Authorization":"Token YOUR_BASEROW_API_TOKEN" }
+    });
+    const data = await r.json();
+    const list = document.getElementById("latest-list");
+    list.innerHTML = "";
+
+    data.results.filter(x => !x.deleted).forEach(row => {
+        const div = document.createElement("div");
+        div.style.borderBottom = "1px solid #ccc";
+        div.style.padding = "5px";
+        div.innerHTML = `
+            <b>${row.bird_id}</b> – ${row.action} – ${row.date} <br>
+            (${row.latitude}, ${row.longitude})
+            <br>
+            <button onclick="deleteRecord(${row.id})">Delete</button>
+        `;
+        list.appendChild(div);
+    });
+};
+
+async function deleteRecord(id) {
+    await fetch(`https://api.baserow.io/api/database/rows/table/742957/${id}/?user_field_names=true`, {
+        method:"PATCH",
+        headers: { 
+            "Content-Type":"application/json",
+            "Authorization":"Token YOUR_BASEROW_API_TOKEN"
+        },
+        body: JSON.stringify({ deleted: true })
+    });
+    document.getElementById("btn-latest").click();
+}
+
+
+// -------------------- POPUP HELPERS --------------------
+function openPopup(id) { document.getElementById(id).style.display="flex"; }
+function closePopup(id) { document.getElementById(id).style.display="none"; }
+
+</script>
+</body>
+</html>
 
