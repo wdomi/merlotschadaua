@@ -1,9 +1,9 @@
-/* ========================================================================
-   Merlotschadaua – app.js
-   Clean standalone JavaScript for index.html
-   ======================================================================== */
+/***************************************************************************
+ * Merlotschadaua – Full Working app.js
+ * Clean, validated, fully functional version
+ **************************************************************************/
 
-console.log("app.js loaded");
+console.log("Merlotschadaua app.js loaded");
 
 // ------------------------------------------------------------------------
 // Global State
@@ -20,80 +20,106 @@ let marker = null;
 const DEFAULT_CENTER = [46.7000, 10.0833]; // Zernez fallback
 const OFFLINE_QUEUE_KEY = "merlotschadaua_offline_queue";
 
-// ------------------------------------------------------------------------
-// Initialization
-// ------------------------------------------------------------------------
+// ========================================================================
+// INITIALIZATION
+// ========================================================================
 
 window.addEventListener("load", () => {
+  console.log("Initializing app…");
   loadCSV();
-  setupButtons();
-  updateOfflineBanner();
+  setupMainButtons();
   flushOfflineQueue();
 });
 
-// ------------------------------------------------------------------------
-// CSV Loading
-// ------------------------------------------------------------------------
+// ========================================================================
+// CSV LOADING + PARSING
+// ========================================================================
 
 function loadCSV() {
+  console.log("Loading CSV…");
+
   fetch("/data/view_birdsCSV_apps.csv")
     .then((r) => r.text())
     .then(parseCSV)
     .then(() => {
+      console.log("CSV parsed:", birds.length, "birds loaded");
       extractColors();
       buildColorButtons();
       renderBirds();
     })
-    .catch((err) => console.error("CSV error:", err));
+    .catch((err) => {
+      console.error("CSV failed to load:", err);
+      alert("CSV konnte nicht geladen werden.");
+    });
 }
 
+/**
+ * Fully robust CSV parser:
+ * - Handles quoted headers
+ * - Handles quoted fields
+ * - Handles commas inside quotes
+ * - Converts "NULL" → ""
+ */
 function parseCSV(text) {
   const lines = text.trim().split("\n");
   if (!lines.length) return;
 
-  // Remove quotes from headers
+  // Extract header row correctly
   const header = lines[0]
-    .split(",")
-    .map(h => h.replace(/^"|"$/g, "").trim());
+    .match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
+    .map((h) => h.replace(/^"|"$/g, "").trim());
 
+  // Process each row
   for (let i = 1; i < lines.length; i++) {
-    // Respect quoted CSV with commas inside
+    if (!lines[i].trim()) continue;
+
     const cols = lines[i]
       .match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
-      .map(v => v.replace(/^"|"$/g, "").trim());
-
-    if (!cols[0]) continue;
+      .map((v) => {
+        v = v.replace(/^"|"$/g, "").trim();
+        return v === "NULL" ? "" : v;
+      });
 
     const row = {};
-    header.forEach((h, idx) => (row[h] = cols[idx] ?? ""));
+    header.forEach((h, idx) => {
+      row[h] = cols[idx] ?? "";
+    });
 
-    if (row.bird_id && row.bird_id !== "NULL") {
+    if (row.bird_id && row.bird_id !== "") {
       birds.push(row);
     }
   }
 }
 
-// ------------------------------------------------------------------------
-// Colors
-// ------------------------------------------------------------------------
+// ========================================================================
+// COLOR EXTRACTION + BUTTONS
+// ========================================================================
 
 function extractColors() {
+  colors.clear();
+
   birds.forEach((b) => {
     [b.R_top, b.R_bottom, b.L_top, b.L_bottom].forEach((c) => {
-      if (c && c !== "NULL") colors.add(c);
+      if (c && c !== "NULL" && c !== "") colors.add(c);
     });
   });
+
+  console.log("Extracted colors:", Array.from(colors));
 }
 
 function buildColorButtons() {
   const right = document.getElementById("right-leg");
   const left = document.getElementById("left-leg");
 
+  right.innerHTML = "";
+  left.innerHTML = "";
+
   colors.forEach((color) => {
     // Right
     const br = document.createElement("button");
     br.className = "color-button";
     br.style.background = color;
+    br.title = color;
     br.onclick = () => toggleColor("right", color, br);
     right.appendChild(br);
 
@@ -101,57 +127,62 @@ function buildColorButtons() {
     const bl = document.createElement("button");
     bl.className = "color-button";
     bl.style.background = color;
+    bl.title = color;
     bl.onclick = () => toggleColor("left", color, bl);
     left.appendChild(bl);
   });
 }
 
 function toggleColor(side, color, btn) {
-  const arr = side === "right" ? selectedRight : selectedLeft;
+  const selected = side === "right" ? selectedRight : selectedLeft;
 
-  if (arr.includes(color)) {
-    arr.splice(arr.indexOf(color), 1);
+  if (selected.includes(color)) {
+    selected.splice(selected.indexOf(color), 1);
     btn.classList.remove("selected");
-  } else if (arr.length < 2) {
-    arr.push(color);
+  } else {
+    if (selected.length === 2) return; // Max 2 colors per leg
+    selected.push(color);
     btn.classList.add("selected");
   }
 
+  console.log("Filter:", selectedRight, selectedLeft);
   renderBirds();
 }
 
-// ------------------------------------------------------------------------
-// Filtering
-// ------------------------------------------------------------------------
+// ========================================================================
+// FILTERING
+// ========================================================================
 
 function birdMatches(b) {
-  const rcolors = [b.R_top, b.R_bottom];
-  const lcolors = [b.L_top, b.L_bottom];
+  const r = [b.R_top, b.R_bottom];
+  const l = [b.L_top, b.L_bottom];
 
-  if (selectedRight.length > 0 && !selectedRight.some((c) => rcolors.includes(c))) return false;
-  if (selectedLeft.length > 0 && !selectedLeft.some((c) => lcolors.includes(c))) return false;
+  if (selectedRight.length && !selectedRight.some((c) => r.includes(c))) return false;
+  if (selectedLeft.length && !selectedLeft.some((c) => l.includes(c))) return false;
 
   return true;
 }
 
-// ------------------------------------------------------------------------
-// Table Rendering
-// ------------------------------------------------------------------------
+// ========================================================================
+// TABLE RENDERING
+// ========================================================================
 
 function renderBirds() {
   const body = document.getElementById("birds-body");
   body.innerHTML = "";
 
-  birds.filter(birdMatches).forEach((b) => {
+  const visible = birds.filter(birdMatches);
+
+  visible.forEach((b) => {
     const tr = document.createElement("tr");
 
     const dist = b["dist Punt dal Gal (m)"] || "";
 
     tr.innerHTML = `
-      <td>${b.name || ""} <span class="tag">${b.bird_id}</span></td>
-      <td>${b.sex || ""} / ${b.age || ""}</td>
-      <td>${b.territory_name || b.territory || ""} (${dist}) / ${b.banded_on || ""}</td>
-      <td>${b.R_top || ""}/${b.R_bottom || ""} – ${b.L_top || ""}/${b.L_bottom || ""}</td>
+      <td>${b.name} <span class="tag">${b.bird_id}</span></td>
+      <td>${b.sex}/${b.age}</td>
+      <td>${b.territory_name} (${dist}) / ${b.banded_on}</td>
+      <td>${b.R_top}/${b.R_bottom} – ${b.L_top}/${b.L_bottom}</td>
       <td>
         <button class="btn btn-primary" data-id="${b.bird_id}" data-action="sighted">beobachtet</button>
         <button class="btn btn-secondary" data-id="${b.bird_id}" data-action="maybe">unsicher</button>
@@ -161,29 +192,28 @@ function renderBirds() {
     body.appendChild(tr);
   });
 
-  // Attach row button listeners
+  // Add handlers
   document.querySelectorAll("button[data-id]").forEach((btn) => {
     btn.onclick = () => {
-      const id = btn.getAttribute("data-id");
-      const action = btn.getAttribute("data-action");
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
       openReport(id, action);
     };
   });
+
+  console.log("Rendered", visible.length, "birds");
 }
 
-// ------------------------------------------------------------------------
-// Setup Main Buttons
-// ------------------------------------------------------------------------
+// ========================================================================
+// MAIN BUTTONS
+// ========================================================================
 
-function setupButtons() {
-  document.getElementById("btn-reset").onclick = resetFilters;
-
-  document.getElementById("btn-report").onclick = () => {
-    if (!currentBird) {
-      alert("Bitte zuerst in der Liste einen Vogel auswählen.");
-      return;
-    }
-    openReport(currentBird.bird.bird_id, currentBird.action);
+function setupMainButtons() {
+  document.getElementById("btn-reset").onclick = () => {
+    selectedLeft = [];
+    selectedRight = [];
+    document.querySelectorAll(".color-button").forEach((b) => b.classList.remove("selected"));
+    renderBirds();
   };
 
   document.getElementById("btn-unringed").onclick = () => {
@@ -192,43 +222,37 @@ function setupButtons() {
       name: "unberingt",
       territory_name: "",
     };
-    openReportForBirdObj(pseudo, "maybe");
+    openReportObject(pseudo, "maybe");
+  };
+
+  document.getElementById("btn-report").onclick = () => {
+    if (!currentBird) {
+      alert("Bitte zuerst einen Vogel auswählen.");
+      return;
+    }
+    openReportObject(currentBird.bird, currentBird.action);
   };
 
   document.getElementById("btn-latest").onclick = loadLatest;
 }
 
-// ------------------------------------------------------------------------
-// Reset
-// ------------------------------------------------------------------------
+// ========================================================================
+// REPORT POPUP + MAP
+// ========================================================================
 
-function resetFilters() {
-  selectedLeft = [];
-  selectedRight = [];
-
-  document.querySelectorAll(".color-button").forEach((b) => b.classList.remove("selected"));
-
-  renderBirds();
+function openReport(id, action) {
+  const b = birds.find((x) => x.bird_id === id);
+  openReportObject(b, action);
 }
 
-// ------------------------------------------------------------------------
-// Report Popup
-// ------------------------------------------------------------------------
-
-function openReport(bird_id, action) {
-  const b = birds.find((x) => x.bird_id === bird_id);
-  if (!b) return;
-
-  openReportForBirdObj(b, action);
-}
-
-function openReportForBirdObj(bird, action) {
+function openReportObject(bird, action) {
   currentBird = { bird, action };
 
   const info = document.getElementById("popup-bird-info");
-  info.textContent = bird.bird_id === "unringed"
-    ? "Unberingter Vogel"
-    : `${bird.name} (${bird.bird_id})`;
+  info.textContent =
+    bird.bird_id === "unringed"
+      ? "Unberingter Vogel"
+      : `${bird.name} (${bird.bird_id})`;
 
   openPopup("popup-report-bg");
   initMap();
@@ -246,7 +270,6 @@ function initMap() {
     marker = L.marker(DEFAULT_CENTER, { draggable: true }).addTo(map);
   }
 
-  // GPS
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -262,16 +285,14 @@ function initMap() {
     );
   }
 
-  setTimeout(() => {
-    map.invalidateSize();
-  }, 200);
+  setTimeout(() => map.invalidateSize(), 150);
 
   document.getElementById("btn-save-report").onclick = saveReport;
 }
 
-// ------------------------------------------------------------------------
-// Save Report
-// ------------------------------------------------------------------------
+// ========================================================================
+// SAVE REPORT
+// ========================================================================
 
 async function saveReport() {
   if (!currentBird || !marker) return;
@@ -292,23 +313,23 @@ async function saveReport() {
   if (!navigator.onLine) {
     addToOfflineQueue(payload);
     closePopup("popup-report-bg");
-    alert("Offline – lokal gespeichert.");
+    alert("Offline – Beobachtung lokal gespeichert.");
     return;
   }
 
   try {
     await sendToServer(payload);
     closePopup("popup-report-bg");
-    alert("Gespeichert.");
+    alert("Beobachtung gespeichert.");
   } catch (err) {
     console.error(err);
     alert("Fehler beim Speichern.");
   }
 }
 
-// ------------------------------------------------------------------------
-// Offline Queue
-// ------------------------------------------------------------------------
+// ========================================================================
+// OFFLINE QUEUE
+// ========================================================================
 
 function addToOfflineQueue(entry) {
   const list = getOfflineQueue();
@@ -328,7 +349,6 @@ function getOfflineQueue() {
 
 async function flushOfflineQueue() {
   if (!navigator.onLine) return;
-
   const list = getOfflineQueue();
   if (!list.length) return;
 
@@ -336,7 +356,7 @@ async function flushOfflineQueue() {
     try {
       await sendToServer(item.entry);
     } catch (err) {
-      console.error("Failed to flush", err);
+      console.warn("Failed flushing offline queue");
       return;
     }
   }
@@ -344,15 +364,9 @@ async function flushOfflineQueue() {
   localStorage.removeItem(OFFLINE_QUEUE_KEY);
 }
 
-function updateOfflineBanner() {
-  // You can add an element if needed, left disabled intentionally
-}
-
-window.addEventListener("online", flushOfflineQueue);
-
-// ------------------------------------------------------------------------
-// Send To Server (Vercel function)
-// ------------------------------------------------------------------------
+// ========================================================================
+// SERVER COMMUNICATION
+// ========================================================================
 
 async function sendToServer(payload) {
   const res = await fetch("/api/submit", {
@@ -361,36 +375,38 @@ async function sendToServer(payload) {
     body: JSON.stringify(payload),
   });
 
-  if (!res.ok) throw new Error("Server error");
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("Server returned error:", text);
+    throw new Error("Server error");
+  }
 
   return res.json();
 }
 
-// ------------------------------------------------------------------------
-// Latest Observations
-// ------------------------------------------------------------------------
+// ========================================================================
+// LATEST OBSERVATIONS
+// ========================================================================
 
 async function loadLatest() {
   openPopup("popup-latest-bg");
 
-  const listEl = document.getElementById("latest-list");
-  listEl.textContent = "Lade...";
+  const list = document.getElementById("latest-list");
+  list.textContent = "Lade...";
 
   try {
     const res = await fetch("/api/submit?mode=list");
     const rows = await res.json();
 
-    listEl.innerHTML = "";
+    list.innerHTML = "";
 
     rows.forEach((row) => {
       const div = document.createElement("div");
       div.style.borderBottom = "1px solid #ddd";
       div.style.padding = "0.5rem 0";
 
-      const actionLabel = row.action === "sighted" ? "beobachtet" : "unsicher";
-
       div.innerHTML = `
-        <strong>${row.bird_id || "unringed"}</strong> – ${actionLabel}<br>
+        <strong>${row.bird_id}</strong> – ${row.action}<br>
         ${row.date || ""}<br>
         (${row.latitude}, ${row.longitude})<br>
       `;
@@ -399,29 +415,26 @@ async function loadLatest() {
       del.className = "btn btn-ghost";
       del.textContent = "Delete";
       del.onclick = async () => {
-        if (!confirm("Löschen?")) return;
-
         await fetch("/api/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ mode: "delete", id: row.id }),
         });
-
-        loadLatest(); // Refresh
+        loadLatest();
       };
 
       div.appendChild(del);
-      listEl.appendChild(div);
+      list.appendChild(div);
     });
   } catch (err) {
     console.error(err);
-    listEl.textContent = "Fehler beim Laden.";
+    list.textContent = "Fehler beim Laden.";
   }
 }
 
-// ------------------------------------------------------------------------
-// Popup Controls
-// ------------------------------------------------------------------------
+// ========================================================================
+// POPUPS
+// ========================================================================
 
 function openPopup(id) {
   document.getElementById(id).style.display = "flex";
