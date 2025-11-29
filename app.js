@@ -111,9 +111,18 @@ function colorToCSS(c) {
 
 function coloredLabel(c) {
   if (!c) return "";
-  const css = colorToCSS(c);
-  return `<span style="color:${css}; font-weight:600;">${c}</span>`;
+  const hex = colorToHex(c);
+  return `<span style="
+      background:${hex};
+      color:white;
+      padding:2px 6px;
+      border-radius:4px;
+      font-weight:600;
+      font-size:13px;
+      display:inline-block;
+    ">${c}</span>`;
 }
+
 
 function extractColors() {
   colors.clear();
@@ -134,24 +143,63 @@ function buildColorButtons() {
   right.innerHTML = "";
   left.innerHTML = "";
 
-  colors.forEach((color) => {
-    // Right
+  // FIXED ORDER LIKE YOUR MOCKUP
+  const orderedColors = [
+    "white",
+    "alu",
+    "red",
+    "blue",
+    "pink",
+    "yellow",
+    "green",
+    "violet",
+    "black",
+  ];
+
+  orderedColors.forEach((color) => {
+    const hex = colorToHex(color);
+
+    // Right leg
     const br = document.createElement("button");
     br.className = "color-button";
-    br.style.background = color;
-    br.title = color;
+    br.style.background = hex;
+    br.textContent = color;
     br.onclick = () => toggleColor("right", color, br);
     right.appendChild(br);
 
-    // Left
+    // Left leg
     const bl = document.createElement("button");
     bl.className = "color-button";
-    bl.style.background = color;
-    bl.title = color;
+    bl.style.background = hex;
+    bl.textContent = color;
     bl.onclick = () => toggleColor("left", color, bl);
     left.appendChild(bl);
   });
 }
+
+
+function colorToHex(c) {
+  const map = {
+    white: "#f3f3f3",
+    whi: "#f3f3f3",
+    alu: "#8a8a8a",
+    red: "#e53935",
+    blue: "#5586c1",
+    pink: "#f48ac2",
+    yellow: "#d4a72c",
+    yel: "#d4a72c",
+    green: "#2c7d2c",
+    gre: "#2c7d2c",
+    violet: "#6b008b",
+    vio: "#6b008b",
+    black: "#222",
+    bla: "#222",
+  };
+
+  const key = c.toLowerCase();
+  return map[key] ?? "#999"; // fallback grey
+}
+
 
 function toggleColor(side, color, btn) {
   const selected = side === "right" ? selectedRight : selectedLeft;
