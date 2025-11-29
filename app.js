@@ -101,8 +101,9 @@ function colorToCSS(c) {
 
   const lower = c.toLowerCase();
 
-  if (lower === "white" || lower === "whi") return "#ccc";   // better visibility
-  if (lower === "alu") return "#888";                        // aluminum grey
+  if (lower === "white" || lower === "whi") return "#d5d5d5";   // better visibility
+  if (lower === "alu") return "#8a8a8a";                        // aluminum grey
+  if (lower === "yellow" || lower === "yel") return "#c7a400";  // darker yellow
   if (lower === "silver") return "#aaa";
 
   return lower; // use raw color name for others
