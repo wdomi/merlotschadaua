@@ -466,6 +466,22 @@ async function flushOfflineQueue() {
 // ------------------------------------------------------------------------
 
 async function sendToServer(payload) {
+
+  // --- FIX GPS TYPES ----
+  function fixNumber(n) {
+    if (n === null || n === undefined) return null;
+    const x = Number(n);
+    return isNaN(x) ? null : x;
+  }
+
+  payload.latitude  = fixNumber(payload.latitude);
+  payload.longitude = fixNumber(payload.longitude);
+
+  // Also fix action (ensure numeric 4519311/4519312)
+  payload.action = Number(payload.action);
+
+  // -----------------------
+
   const res = await fetch("/api/submit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -475,6 +491,7 @@ async function sendToServer(payload) {
   if (!res.ok) throw new Error("Server response not OK");
   return res.json();
 }
+
 
 // ------------------------------------------------------------------------
 // LATEST OBS
