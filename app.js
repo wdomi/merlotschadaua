@@ -137,41 +137,45 @@ function extractColors() {
 }
 
 function buildColorButtons() {
+  const right = document.getElementById("right-leg");
+  const left = document.getElementById("left-leg");
+
+  right.innerHTML = "";
+  left.innerHTML = "";
+
+  // FIXED ORDER LIKE YOUR MOCKUP
   const orderedColors = [
+    "white",
     "alu",
-    "black",
+    "red",
     "blue",
     "pink",
-    "red",
-    "violet",
-    "white",
     "yellow",
     "green",
+    "violet",
+    "black",
   ];
 
-  orderedColors.forEach((color, index) => {
+  orderedColors.forEach((color) => {
     const hex = colorToHex(color);
 
-    // RIGHT LEG
-    const rSlot = document.getElementById(`right-${index + 1}`);
-    const rBtn = document.createElement("button");
-    rBtn.className = "color-button";
-    rBtn.style.background = hex;
-    rBtn.textContent = color;
-    rBtn.onclick = () => toggleColor("right", color, rBtn);
-    rSlot.appendChild(rBtn);
+    // Right leg
+    const br = document.createElement("button");
+    br.className = "color-button";
+    br.style.background = hex;
+    br.textContent = color;
+    br.onclick = () => toggleColor("right", color, br);
+    right.appendChild(br);
 
-    // LEFT LEG
-    const lSlot = document.getElementById(`left-${index + 1}`);
-    const lBtn = document.createElement("button");
-    lBtn.className = "color-button";
-    lBtn.style.background = hex;
-    lBtn.textContent = color;
-    lBtn.onclick = () => toggleColor("left", color, lBtn);
-    lSlot.appendChild(lBtn);
+    // Left leg
+    const bl = document.createElement("button");
+    bl.className = "color-button";
+    bl.style.background = hex;
+    bl.textContent = color;
+    bl.onclick = () => toggleColor("left", color, bl);
+    left.appendChild(bl);
   });
 }
-
 
 
 function colorToHex(c) {
