@@ -228,10 +228,25 @@ function renderBirds() {
     body.appendChild(tr);
   });
 
-  document.querySelectorAll("button[data-id]").forEach(btn => {
-    btn.onclick = () => openReport(btn.dataset.id, btn.dataset.action);
-  });
-}
+  document.querySelectorAll("button[data-id]").forEach((btn) => {
+  btn.onclick = () => {
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+
+    // update selection
+    currentBird = {
+      bird: birds.find(b => b.bird_id === id),
+      action: action
+    };
+
+    // visual highlight
+    document.querySelectorAll(`button[data-id="${id}"]`)
+      .forEach(b => b.classList.remove("selected-action"));
+
+    btn.classList.add("selected-action");
+  };
+});
+
 
 // ------------------------------------------------------------------------
 // SETUP BUTTONS
