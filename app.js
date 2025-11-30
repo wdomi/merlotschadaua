@@ -1,6 +1,6 @@
 /***************************************************************************
- * Merlotschadaua – FULL FINAL APP.JS (2025)
- * Mobile layout + AND filtering + stable Leaflet init + unringed fix.
+ * Merlotschadaua – FINAL APP.JS (Option C: Multi-Bird Selection)
+ * Clean, stable, mobile UI compatible, Leaflet fixed, multi-select logic.
  **************************************************************************/
 
 console.log("Merlotschadaua app.js loaded");
@@ -12,7 +12,9 @@ console.log("Merlotschadaua app.js loaded");
 let birds = [];
 let selectedRight = [];
 let selectedLeft = [];
-let currentBird = null;
+
+let perBirdSelection = new Map();  
+// bird_id → "sighted" | "maybe" | null
 
 let map = null;
 let marker = null;
@@ -22,26 +24,21 @@ const CSV_URL = "/data/view_birdsCSV_apps.csv";
 
 const OFFLINE_QUEUE_KEY = "merlotschadaua_offline_queue";
 
-// FIXED COLOR PALETTE — matches your mobile UI
 const COLOR_PALETTE = {
-  alu:    "#808080",
-  white:  "#eee",
-  red:    "#e22c22",
+  alu: "#808080",
+  white: "#eee",
+  red: "#e22c22",
   yellow: "#d6a51c",
-  green:  "#227722",
-  blue:   "#4b77b8",
+  green: "#227722",
+  blue: "#4b77b8",
   violet: "#6e009e",
-  pink:   "#f58ac7",
-  black:  "#222"
+  pink: "#f58ac7",
+  black: "#222"
 };
 
 const COLOR_ORDER = [
   "alu","white","red","yellow","green","blue","pink","violet","black"
 ];
-
-// ------------------------------------------------------------------------
-// INITIALIZATION
-// ------------------------------------------------------------------------
 
 window.addEventListener("load", () => {
   console.log("Initializing app…");
@@ -51,7 +48,7 @@ window.addEventListener("load", () => {
 });
 
 // ------------------------------------------------------------------------
-// CSV LOADING + PARSING
+// CSV LOADING
 // ------------------------------------------------------------------------
 
 function loadCSV() {
@@ -63,7 +60,7 @@ function loadCSV() {
       birds = rows;
       buildColorButtons();
       renderBirds();
-      console.log("CSV loaded:", birds.length, "rows");
+      console.log("Loaded", birds.length, "birds");
     })
     .catch(err => {
       console.error("CSV error:", err);
@@ -83,7 +80,7 @@ function parseCSV(text) {
     .match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
     .map(h => h.replace(/^"|"$/g, "").trim().toLowerCase());
 
-  function idx(name) { return header.indexOf(name); }
+  const idx = key => header.indexOf(key);
 
   const out = [];
 
@@ -128,13 +125,13 @@ function buildColorButtons() {
 
   COLOR_ORDER.forEach(color => {
     const hex = COLOR_PALETTE[color];
-    const textColor = (color === "white" ? "#000" : "#fff");
+    const text = color === "white" ? "#000" : "#fff";
 
     const br = document.createElement("button");
     br.className = "color-button";
     br.textContent = color;
     br.style.background = hex;
-    br.style.color = textColor;
+    br.style.color = text;
     br.onclick = () => toggleColor("right", color, br);
     right.appendChild(br);
 
@@ -142,7 +139,7 @@ function buildColorButtons() {
     bl.className = "color-button";
     bl.textContent = color;
     bl.style.background = hex;
-    bl.style.color = textColor;
+    bl.style.color = text;
     bl.onclick = () => toggleColor("left", color, bl);
     left.appendChild(bl);
   });
@@ -155,7 +152,7 @@ function toggleColor(side, color, btn) {
     arr.splice(arr.indexOf(color), 1);
     btn.classList.remove("selected");
   } else {
-    if (arr.length === 2) return;      // max 2
+    if (arr.length >= 2) return;
     arr.push(color);
     btn.classList.add("selected");
   }
@@ -164,152 +161,179 @@ function toggleColor(side, color, btn) {
 }
 
 // ------------------------------------------------------------------------
-// FILTERING — AND LOGIC
+// FILTERING (AND-logic)
 // ------------------------------------------------------------------------
 
 function birdMatches(b) {
-  const r = [b.R_top, b.R_bottom].filter(Boolean);
-  const l = [b.L_top, b.L_bottom].filter(Boolean);
+  const R = [b.R_top, b.R_bottom].filter(Boolean);
+  const L = [b.L_top, b.L_bottom].filter(Boolean);
 
   if (selectedRight.length > 0) {
-    if (!selectedRight.every(c => r.includes(c))) return false;
+    if (!selectedRight.every(c => R.includes(c))) return false;
   }
   if (selectedLeft.length > 0) {
-    if (!selectedLeft.every(c => l.includes(c))) return false;
+    if (!selectedLeft.every(c => L.includes(c))) return false;
   }
 
   return true;
 }
 
 // ------------------------------------------------------------------------
-// RENDER TABLE
+// TABLE RENDERING (multi-select logic)
 // ------------------------------------------------------------------------
 
-function colorSpan(c) {
+function colorPill(c) {
   if (!c) return "";
   const hex = COLOR_PALETTE[c] || "#777";
-  const text = (c === "white" ? "#000" : "#fff");
+  const text = c === "white" ? "#000" : "#fff";
 
   return `<span style="
-      background:${hex};
-      color:${text};
-      padding:2px 4px;
-      border-radius:4px;
-      font-size:11px;
-      display:inline-block;
-    ">${c}</span>`;
+    background:${hex};
+    color:${text};
+    padding:2px 4px;
+    border-radius:4px;
+    font-size:11px;
+    margin-right:2px;
+  ">${c}</span>`;
 }
 
 function renderBirds() {
   const body = document.getElementById("birds-body");
   body.innerHTML = "";
 
-  const visible = birds.filter(birdMatches);
-
-  visible.forEach(b => {
+  birds.filter(birdMatches).forEach(b => {
     const tr = document.createElement("tr");
 
+    const act = perBirdSelection.get(b.bird_id) || null;
+
     tr.innerHTML = `
-      <td>${b.name} <span class="tag">${b.bird_id}</span></td>
+      <td>${b.name} <div class="tag">${b.bird_id}</div></td>
       <td>${b.sex}/${b.age}</td>
       <td>${b.territory} (${b.dist}) / ${b.banded_on}</td>
       <td>
-        ${colorSpan(b.R_top)} /
-        ${colorSpan(b.R_bottom)} –
-        ${colorSpan(b.L_top)} /
-        ${colorSpan(b.L_bottom)}
+        ${colorPill(b.R_top)} / ${colorPill(b.R_bottom)} –
+        ${colorPill(b.L_top)} / ${colorPill(b.L_bottom)}
       </td>
       <td>
-        <button class="submit-btn submit-btn-primary" data-id="${b.bird_id}" data-action="sighted">beobachtet</button>
-        <button class="submit-btn submit-btn-ghost" data-id="${b.bird_id}" data-action="maybe">unsicher</button>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <button 
+            class="submit-btn submit-btn-ghost ${act === "sighted" ? "selected-action" : ""}" 
+            data-id="${b.bird_id}" 
+            data-action="sighted"
+          >beobachtet</button>
+
+          <button 
+            class="submit-btn submit-btn-ghost ${act === "maybe" ? "selected-action" : ""}" 
+            data-id="${b.bird_id}" 
+            data-action="maybe"
+          >unsicher</button>
+        </div>
       </td>
     `;
 
     body.appendChild(tr);
   });
 
-  document.querySelectorAll("button[data-id]").forEach((btn) => {
-  btn.onclick = () => {
-    const id = btn.dataset.id;
-    const action = btn.dataset.action;
+  document.querySelectorAll("button[data-id]").forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
 
-    // update selection
-    currentBird = {
-      bird: birds.find(b => b.bird_id === id),
-      action: action
+      const current = perBirdSelection.get(id) || null;
+
+      if (current === action) {
+        perBirdSelection.delete(id);
+      } else {
+        perBirdSelection.set(id, action);
+      }
+
+      renderBirds();
     };
-
-    // visual highlight
-    document.querySelectorAll(`button[data-id="${id}"]`)
-      .forEach(b => b.classList.remove("selected-action"));
-
-    btn.classList.add("selected-action");
-  };
-});
-
+  });
+}
 
 // ------------------------------------------------------------------------
-// SETUP BUTTONS
+// TOP BUTTON LOGIC
 // ------------------------------------------------------------------------
 
 function setupButtons() {
   document.getElementById("btn-reset").onclick = () => {
-    selectedRight = [];
     selectedLeft = [];
+    selectedRight = [];
+    perBirdSelection.clear();
+
     document.querySelectorAll(".color-button").forEach(b => b.classList.remove("selected"));
     renderBirds();
   };
 
   document.getElementById("btn-unringed").onclick = () => {
-    openReportObject({
-      bird_id: "unringed",
-      name: "unberingt",
-      territory: ""
-    }, "maybe");
+    perBirdSelection.clear();
+    perBirdSelection.set("unringed", "maybe");
+    openConfirmationPopup();
   };
 
-document.getElementById("btn-report").onclick = () => {
-  if (!currentBird) {
-    alert("Bitte zuerst bei einem Vogel 'beobachtet' oder 'unsicher' wählen.");
-    return;
-  }
-  openReportObject(currentBird.bird, currentBird.action);
-};
-
+  document.getElementById("btn-report").onclick = openConfirmationPopup;
 
   document.getElementById("btn-latest").onclick = loadLatest;
 }
 
 // ------------------------------------------------------------------------
-// REPORT POPUP + FIXED MAP INIT
+// CONFIRMATION POPUP → MAP POPUP
 // ------------------------------------------------------------------------
 
-function openReport(id, action) {
-  const b = birds.find(x => x.bird_id === id);
-  if (b) openReportObject(b, action);
+function openConfirmationPopup() {
+  const entries = [];
+
+  for (const [bird_id, action] of perBirdSelection.entries()) {
+    if (!action) continue;
+
+    if (bird_id === "unringed") {
+      entries.push({
+        bird: { bird_id: "unringed", name: "unberingt", territory: "" },
+        action
+      });
+    } else {
+      const b = birds.find(x => x.bird_id === bird_id);
+      if (b) entries.push({ bird: b, action });
+    }
+  }
+
+  if (entries.length === 0) {
+    alert("Bitte zuerst mindestens einen Vogel mit 'beobachtet' oder 'unsicher' markieren.");
+    return;
+  }
+
+  // save selection globally
+  window._pendingSelections = entries;
+
+  // open map popup
+  openReportPopup(entries);
 }
 
-function openReportObject(bird, action) {
-  currentBird = { bird, action };
-
-  document.getElementById("popup-bird-info").textContent =
-    bird.bird_id === "unringed"
-      ? "Unberingter Vogel"
-      : `${bird.name} (${bird.bird_id})`;
-
-  document.getElementById("coords-display").textContent = "Lat: — , Lng: —";
+function openReportPopup(entries) {
+  // show first bird name (or number of birds)
+  if (entries.length === 1) {
+    const b = entries[0].bird;
+    document.getElementById("popup-bird-info").textContent =
+      b.bird_id === "unringed" ? "Unberingter Vogel" : `${b.name} (${b.bird_id})`;
+  } else {
+    document.getElementById("popup-bird-info").textContent =
+      `${entries.length} Vögel ausgewählt`;
+  }
 
   openPopup("popup-report-bg");
   initMap();
 }
 
+// ------------------------------------------------------------------------
+// MAP POPUP (Leaflet)
+// ------------------------------------------------------------------------
+
 function initMap() {
   const mapDiv = document.getElementById("map");
 
-  // Reset container
   mapDiv.innerHTML = "";
 
-  // Remove old map fully (fixes unringed map bug!)
   if (map) {
     map.remove();
     map = null;
@@ -329,7 +353,6 @@ function initMap() {
     updateCoords(lat, lng);
   });
 
-  // Attempt GPS
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       pos => {
@@ -343,22 +366,22 @@ function initMap() {
     );
   }
 
-  // Fix for mobile layout sizing
-  setTimeout(() => map.invalidateSize(), 220);
+  setTimeout(() => map.invalidateSize(), 200);
 
-  // “Find me”
   document.getElementById("btn-find-me").onclick = () => {
     navigator.geolocation.getCurrentPosition(
       pos => {
-        map.setView([pos.coords.latitude, pos.coords.longitude], 15);
-        marker.setLatLng([pos.coords.latitude, pos.coords.longitude]);
-        updateCoords(pos.coords.latitude, pos.coords.longitude);
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        map.setView([lat, lng], 15);
+        marker.setLatLng([lat, lng]);
+        updateCoords(lat, lng);
       },
       () => alert("GPS konnte nicht abgerufen werden.")
     );
   };
 
-  document.getElementById("btn-save-report").onclick = saveReport;
+  document.getElementById("btn-save-report").onclick = saveSelectedReports;
 }
 
 function updateCoords(lat, lng) {
@@ -367,39 +390,45 @@ function updateCoords(lat, lng) {
 }
 
 // ------------------------------------------------------------------------
-// SAVE REPORT
+// SAVE REPORTS (multi-entry submission)
 // ------------------------------------------------------------------------
 
-async function saveReport() {
-  if (!currentBird || !marker) return;
+async function saveSelectedReports() {
+  if (!window._pendingSelections || !marker) return;
 
   const { lat, lng } = marker.getLatLng();
-  const b = currentBird.bird;
 
-  const payload = {
-    bird_name: b.name || "",
-    bird_id: b.bird_id,
-    action: currentBird.action,
-    latitude: lat,
-    longitude: lng,
-    territory: b.territory || ""
-  };
+  let successCount = 0;
 
-  if (!navigator.onLine) {
-    addToOfflineQueue(payload);
-    closePopup("popup-report-bg");
-    alert("Offline gespeichert.");
-    return;
+  for (const entry of window._pendingSelections) {
+    const b = entry.bird;
+
+    const payload = {
+      bird_name: b.name || "",
+      bird_id: b.bird_id === "unringed" ? null : b.bird_id,
+      action: entry.action,
+      latitude: lat,
+      longitude: lng,
+      territory: b.territory || ""
+    };
+
+    if (!navigator.onLine) {
+      addToOfflineQueue(payload);
+      continue;
+    }
+
+    try {
+      await sendToServer(payload);
+      successCount++;
+    } catch (err) {
+      console.error("Save error:", err);
+    }
   }
 
-  try {
-    await sendToServer(payload);
-    closePopup("popup-report-bg");
-    alert("Beobachtung gespeichert.");
-  } catch (err) {
-    console.error(err);
-    alert("Fehler beim Speichern.");
-  }
+  alert(`Gespeichert: ${successCount} Beobachtungen`);
+  closePopup("popup-report-bg");
+  perBirdSelection.clear();
+  renderBirds();
 }
 
 // ------------------------------------------------------------------------
@@ -422,7 +451,7 @@ async function flushOfflineQueue() {
     try {
       await sendToServer(entry);
     } catch {
-      console.warn("Offline flush failed.");
+      console.warn("Queue flush failed");
       return;
     }
   }
@@ -441,12 +470,12 @@ async function sendToServer(payload) {
     body: JSON.stringify(payload)
   });
 
-  if (!res.ok) throw new Error("server error");
+  if (!res.ok) throw new Error("Server response not OK");
   return res.json();
 }
 
 // ------------------------------------------------------------------------
-// LATEST OBSERVATIONS
+// LATEST OBS
 // ------------------------------------------------------------------------
 
 async function loadLatest() {
@@ -461,13 +490,13 @@ async function loadLatest() {
 
     list.innerHTML = "";
 
-    rows.forEach(r => {
+    rows.forEach(row => {
       const div = document.createElement("div");
 
       div.innerHTML = `
-        <strong>${r.bird_id}</strong> – ${r.action}<br>
-        ${r.date}<br>
-        (${r.latitude}, ${r.longitude})<br>
+        <strong>${row.bird_id}</strong> – ${row.action}<br>
+        ${row.date}<br>
+        (${row.latitude}, ${row.longitude})<br>
       `;
 
       const del = document.createElement("button");
@@ -476,7 +505,7 @@ async function loadLatest() {
         await fetch("/api/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "delete", id: r.id })
+          body: JSON.stringify({ mode: "delete", id: row.id })
         });
         loadLatest();
       };
@@ -497,6 +526,7 @@ async function loadLatest() {
 function openPopup(id) {
   document.getElementById(id).style.display = "flex";
 }
+
 function closePopup(id) {
   document.getElementById(id).style.display = "none";
 }
