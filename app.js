@@ -268,9 +268,14 @@ function setupButtons() {
     }, "maybe");
   };
 
-  document.getElementById("btn-report").onclick = () => {
-    alert("Bitte zuerst einen Vogel auswählen (beobachtet/unsicher).");
-  };
+document.getElementById("btn-report").onclick = () => {
+  if (!currentBird) {
+    alert("Bitte zuerst bei einem Vogel 'beobachtet' oder 'unsicher' wählen.");
+    return;
+  }
+  openReportObject(currentBird.bird, currentBird.action);
+};
+
 
   document.getElementById("btn-latest").onclick = loadLatest;
 }
