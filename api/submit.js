@@ -1,4 +1,4 @@
-// api/submit.js – FINAL FULL VERSION (matches new app.js)
+// api/submit.js – FINAL WORKING VERSION
 
 const TABLE_ID = 742957;
 const BASEROW_URL = `https://api.baserow.io/api/database/rows/table/${TABLE_ID}/`;
@@ -12,9 +12,9 @@ export default async function handler(req, res) {
     Authorization: `Token ${token}`
   };
 
-  // --------------------------------------------------------------------
-  // GET → return list
-  // --------------------------------------------------------------------
+  // ---------------------------------------------------------------------
+  // GET — list all non-deleted rows
+  // ---------------------------------------------------------------------
   if (req.method === "GET") {
     try {
       const url = `${BASEROW_URL}?user_field_names=true`;
@@ -24,31 +24,32 @@ export default async function handler(req, res) {
       if (!r.ok) return res.status(r.status).json({ error: data });
 
       const filtered = (data.results || []).filter(r => !r.deleted);
-      const mapped = filtered.map(r => ({
-        id: r.id,
-        bird_name: r.bird_name,
-        bird_id: r.bird_id,
-        action: r.action?.value ?? r.action,
-        date: r.date,
-        latitude: r.latitude,
-        longitude: r.longitude,
-        territory: r.territory
-      }));
 
-      return res.status(200).json(mapped);
-    } catch (e) {
-      return res.status(500).json({ error: String(e) });
+      return res.status(200).json(
+        filtered.map(r => ({
+          id: r.id,
+          bird_name: r.bird_name,
+          bird_id: r.bird_id,
+          action: r.action?.value ?? r.action,
+          date: r.date,
+          latitude: r.latitude,
+          longitude: r.longitude,
+          territory: r.territory
+        }))
+      );
+    } catch (err) {
+      return res.status(500).json({ error: String(err) });
     }
   }
 
-  // --------------------------------------------------------------------
-  // POST → create or delete
-  // --------------------------------------------------------------------
+  // ---------------------------------------------------------------------
+  // POST — create or delete
+  // ---------------------------------------------------------------------
   if (req.method === "POST") {
     const b = req.body || {};
     const mode = b.mode || "create";
 
-    // ---------------- CREATE ----------------
+    // -------------- CREATE -----------------
     if (mode === "create") {
       const action = Number(b.action);
       if (![4519311, 4519312].includes(action))
@@ -76,14 +77,14 @@ export default async function handler(req, res) {
 
         const data = await r.json();
         if (!r.ok) return res.status(r.status).json({ error: data });
-
         return res.status(200).json({ ok: true, row: data });
-      } catch (e) {
-        return res.status(500).json({ error: String(e) });
+
+      } catch (err) {
+        return res.status(500).json({ error: String(err) });
       }
     }
 
-    // ---------------- DELETE ----------------
+    // -------------- DELETE -----------------
     if (mode === "delete") {
       if (!b.id) return res.status(400).json({ error: "id required" });
 
@@ -103,17 +104,15 @@ export default async function handler(req, res) {
         if (!r.ok) return res.status(r.status).json({ error: data });
 
         return res.status(200).json({ ok: true });
-      } catch (e) {
-        return res.status(500).json({ error: String(e) });
+
+      } catch (err) {
+        return res.status(500).json({ error: String(err) });
       }
     }
 
     return res.status(400).json({ error: "Unknown mode" });
   }
 
-  // --------------------------------------------------------------------
-  // Unsupported method
-  // --------------------------------------------------------------------
   res.setHeader("Allow", ["GET", "POST"]);
   return res.status(405).end("Method Not Allowed");
 }
