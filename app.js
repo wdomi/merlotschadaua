@@ -1,6 +1,10 @@
 /***************************************************************************
- * Merlotschadaua – FINAL APP.JS (Option C: Multi-Bird Selection)
- * Clean, stable, mobile UI compatible, Leaflet fixed, multi-select logic.
+ * Merlotschadaua – FINAL WORKING APP.JS
+ * - Multi-select birds
+ * - Correct Baserow numeric action IDs
+ * - GPS numeric fix
+ * - Leaflet popup works
+ * - Save logic matches submit.js
  **************************************************************************/
 
 console.log("Merlotschadaua app.js loaded");
@@ -16,15 +20,18 @@ let selectedRight = [];
 let selectedLeft = [];
 
 let perBirdSelection = new Map();  
-// bird_id → "sighted" | "maybe" | null
-
 let map = null;
 let marker = null;
 
-const DEFAULT_CENTER = [46.7000, 10.0833];
 const CSV_URL = "/data/view_birdsCSV_apps.csv";
-
+const DEFAULT_CENTER = [46.7000, 10.0833];
 const OFFLINE_QUEUE_KEY = "merlotschadaua_offline_queue";
+
+// ★ FIX: Baserow actions must be numeric
+const ACTION_IDS = {
+  sighted: 4519311,
+  maybe: 4519312
+};
 
 const COLOR_PALETTE = {
   alu: "#808080",
@@ -84,17 +91,14 @@ function parseCSV(text) {
 
   const idx = key => header.indexOf(key);
 
-  const out = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const raw = lines[i];
-    if (!raw.trim()) continue;
+  return lines.slice(1).map(raw => {
+    if (!raw.trim()) return null;
 
     const cols = raw
       .match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
       .map(v => v.replace(/^"|"$/g, "").trim());
 
-    const row = {
+    return {
       bird_id: cols[idx("bird_id")] || "",
       name: cols[idx("name")] || "",
       sex: cols[idx("sex")] || "",
@@ -107,11 +111,7 @@ function parseCSV(text) {
       dist: cols[idx("dist punt dal gal (m)")] || "",
       banded_on: cols[idx("banded_on")] || ""
     };
-
-    if (row.bird_id) out.push(row);
-  }
-
-  return out;
+  }).filter(Boolean);
 }
 
 // ------------------------------------------------------------------------
@@ -153,8 +153,7 @@ function toggleColor(side, color, btn) {
   if (arr.includes(color)) {
     arr.splice(arr.indexOf(color), 1);
     btn.classList.remove("selected");
-  } else {
-    if (arr.length >= 2) return;
+  } else if (arr.length < 2) {
     arr.push(color);
     btn.classList.add("selected");
   }
@@ -163,25 +162,21 @@ function toggleColor(side, color, btn) {
 }
 
 // ------------------------------------------------------------------------
-// FILTERING (AND-logic)
+// FILTERING (AND logic)
 // ------------------------------------------------------------------------
 
 function birdMatches(b) {
   const R = [b.R_top, b.R_bottom].filter(Boolean);
   const L = [b.L_top, b.L_bottom].filter(Boolean);
 
-  if (selectedRight.length > 0) {
-    if (!selectedRight.every(c => R.includes(c))) return false;
-  }
-  if (selectedLeft.length > 0) {
-    if (!selectedLeft.every(c => L.includes(c))) return false;
-  }
+  if (!selectedRight.every(c => R.includes(c))) return false;
+  if (!selectedLeft.every(c => L.includes(c))) return false;
 
   return true;
 }
 
 // ------------------------------------------------------------------------
-// TABLE RENDERING (multi-select logic)
+// TABLE RENDERING
 // ------------------------------------------------------------------------
 
 function colorPill(c) {
@@ -204,10 +199,9 @@ function renderBirds() {
   body.innerHTML = "";
 
   birds.filter(birdMatches).forEach(b => {
-    const tr = document.createElement("tr");
-
     const act = perBirdSelection.get(b.bird_id) || null;
 
+    const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${b.name} <div class="tag">${b.bird_id}</div></td>
       <td>${b.sex}/${b.age}</td>
@@ -218,17 +212,11 @@ function renderBirds() {
       </td>
       <td>
         <div style="display:flex; flex-direction:column; gap:4px;">
-          <button 
-            class="submit-btn submit-btn-ghost ${act === "sighted" ? "selected-action" : ""}" 
-            data-id="${b.bird_id}" 
-            data-action="sighted"
-          >beobachtet</button>
+          <button class="submit-btn submit-btn-ghost ${act === "sighted" ? "selected-action" : ""}"
+            data-id="${b.bird_id}" data-action="sighted">beobachtet</button>
 
-          <button 
-            class="submit-btn submit-btn-ghost ${act === "maybe" ? "selected-action" : ""}" 
-            data-id="${b.bird_id}" 
-            data-action="maybe"
-          >unsicher</button>
+          <button class="submit-btn submit-btn-ghost ${act === "maybe" ? "selected-action" : ""}"
+            data-id="${b.bird_id}" data-action="maybe">unsicher</button>
         </div>
       </td>
     `;
@@ -241,13 +229,9 @@ function renderBirds() {
       const id = btn.dataset.id;
       const action = btn.dataset.action;
 
-      const current = perBirdSelection.get(id) || null;
-
-      if (current === action) {
-        perBirdSelection.delete(id);
-      } else {
-        perBirdSelection.set(id, action);
-      }
+      const current = perBirdSelection.get(id);
+      if (current === action) perBirdSelection.delete(id);
+      else perBirdSelection.set(id, action);
 
       renderBirds();
     };
@@ -255,7 +239,7 @@ function renderBirds() {
 }
 
 // ------------------------------------------------------------------------
-// TOP BUTTON LOGIC
+// TOP BUTTONS
 // ------------------------------------------------------------------------
 
 function setupButtons() {
@@ -263,19 +247,17 @@ function setupButtons() {
     selectedLeft = [];
     selectedRight = [];
     perBirdSelection.clear();
-
     document.querySelectorAll(".color-button").forEach(b => b.classList.remove("selected"));
     renderBirds();
   };
 
   document.getElementById("btn-unringed").onclick = () => {
     perBirdSelection.clear();
-    perBirdSelection.set("unringed", "maybe");
+    perBirdSelection.set("unringed", "sighted");
     openConfirmationPopup();
   };
 
   document.getElementById("btn-report").onclick = openConfirmationPopup;
-
   document.getElementById("btn-latest").onclick = loadLatest;
 }
 
@@ -287,59 +269,45 @@ function openConfirmationPopup() {
   const entries = [];
 
   for (const [bird_id, action] of perBirdSelection.entries()) {
-    if (!action) continue;
+    const b = bird_id === "unringed"
+      ? { bird_id: "unringed", name: "unberingt", territory: "" }
+      : birds.find(x => x.bird_id === bird_id);
 
-    if (bird_id === "unringed") {
-      entries.push({
-        bird: { bird_id: "unringed", name: "unberingt", territory: "" },
-        action
-      });
-    } else {
-      const b = birds.find(x => x.bird_id === bird_id);
-      if (b) entries.push({ bird: b, action });
-    }
+    if (b) entries.push({ bird: b, action });
   }
 
   if (entries.length === 0) {
-    alert("Bitte zuerst mindestens einen Vogel mit 'beobachtet' oder 'unsicher' markieren.");
+    alert("Bitte mindestens einen Vogel auswählen.");
     return;
   }
 
-  // save selection globally
   window._pendingSelections = entries;
-
-  // open map popup
   openReportPopup(entries);
 }
 
 function openReportPopup(entries) {
-  // show first bird name (or number of birds)
-  if (entries.length === 1) {
-    const b = entries[0].bird;
-    document.getElementById("popup-bird-info").textContent =
-      b.bird_id === "unringed" ? "Unberingter Vogel" : `${b.name} (${b.bird_id})`;
-  } else {
-    document.getElementById("popup-bird-info").textContent =
-      `${entries.length} Vögel ausgewählt`;
-  }
+  const el = document.getElementById("popup-bird-info");
+
+  el.textContent =
+    entries.length === 1
+      ? (entries[0].bird.bird_id === "unringed"
+            ? "Unberingter Vogel"
+            : `${entries[0].bird.name} (${entries[0].bird.bird_id})`)
+      : `${entries.length} Vögel ausgewählt`;
 
   openPopup("popup-report-bg");
   initMap();
 }
 
 // ------------------------------------------------------------------------
-// MAP POPUP (Leaflet)
+// MAP POPUP
 // ------------------------------------------------------------------------
 
 function initMap() {
   const mapDiv = document.getElementById("map");
-
   mapDiv.innerHTML = "";
 
-  if (map) {
-    map.remove();
-    map = null;
-  }
+  if (map) map.remove();
 
   map = L.map("map").setView(DEFAULT_CENTER, 12);
 
@@ -349,20 +317,18 @@ function initMap() {
   ).addTo(map);
 
   marker = L.marker(DEFAULT_CENTER, { draggable: true }).addTo(map);
-
   marker.on("dragend", () => {
-    const { lat, lng } = marker.getLatLng();
-    updateCoords(lat, lng);
+    const p = marker.getLatLng();
+    updateCoords(p.lat, p.lng);
   });
 
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       pos => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        map.setView([lat, lng], 14);
-        marker.setLatLng([lat, lng]);
-        updateCoords(lat, lng);
+        const { latitude, longitude } = pos.coords;
+        map.setView([latitude, longitude], 14);
+        marker.setLatLng([latitude, longitude]);
+        updateCoords(latitude, longitude);
       },
       () => updateCoords(DEFAULT_CENTER[0], DEFAULT_CENTER[1])
     );
@@ -373,11 +339,10 @@ function initMap() {
   document.getElementById("btn-find-me").onclick = () => {
     navigator.geolocation.getCurrentPosition(
       pos => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        map.setView([lat, lng], 15);
-        marker.setLatLng([lat, lng]);
-        updateCoords(lat, lng);
+        const { latitude, longitude } = pos.coords;
+        map.setView([latitude, longitude], 15);
+        marker.setLatLng([latitude, longitude]);
+        updateCoords(latitude, longitude);
       },
       () => alert("GPS konnte nicht abgerufen werden.")
     );
@@ -392,23 +357,24 @@ function updateCoords(lat, lng) {
 }
 
 // ------------------------------------------------------------------------
-// SAVE REPORTS (multi-entry submission)
+// SAVE → SERVER
 // ------------------------------------------------------------------------
 
 async function saveSelectedReports() {
-  if (!window._pendingSelections || !marker) return;
+  const entries = window._pendingSelections;
+  if (!entries) return;
 
   const { lat, lng } = marker.getLatLng();
 
   let successCount = 0;
 
-  for (const entry of window._pendingSelections) {
+  for (const entry of entries) {
     const b = entry.bird;
 
     const payload = {
       bird_name: b.name || "",
       bird_id: b.bird_id === "unringed" ? null : b.bird_id,
-      action: entry.action,
+      action: ACTION_IDS[entry.action],   // ★ FIXED
       latitude: lat,
       longitude: lng,
       territory: b.territory || ""
@@ -434,7 +400,7 @@ async function saveSelectedReports() {
 }
 
 // ------------------------------------------------------------------------
-// OFFLINE QUEUE
+// QUEUE
 // ------------------------------------------------------------------------
 
 function addToOfflineQueue(entry) {
@@ -453,7 +419,6 @@ async function flushOfflineQueue() {
     try {
       await sendToServer(entry);
     } catch {
-      console.warn("Queue flush failed");
       return;
     }
   }
@@ -462,25 +427,19 @@ async function flushOfflineQueue() {
 }
 
 // ------------------------------------------------------------------------
-// SERVER COMMUNICATION
+// SERVER COMMUNICATION ★ FIXED
 // ------------------------------------------------------------------------
 
 async function sendToServer(payload) {
-
-  // --- FIX GPS TYPES ----
+  // fix GPS types
   function fixNumber(n) {
     if (n === null || n === undefined) return null;
     const x = Number(n);
     return isNaN(x) ? null : x;
   }
 
-  payload.latitude  = fixNumber(payload.latitude);
+  payload.latitude = fixNumber(payload.latitude);
   payload.longitude = fixNumber(payload.longitude);
-
-  // Also fix action (ensure numeric 4519311/4519312)
-  payload.action = Number(payload.action);
-
-  // -----------------------
 
   const res = await fetch("/api/submit", {
     method: "POST",
@@ -492,28 +451,26 @@ async function sendToServer(payload) {
   return res.json();
 }
 
-
 // ------------------------------------------------------------------------
-// LATEST OBS
+// LATEST OBSERVATIONS
 // ------------------------------------------------------------------------
 
 async function loadLatest() {
   openPopup("popup-latest-bg");
 
-  const list = document.getElementById("latest-list");
-  list.textContent = "Lade...";
+  const box = document.getElementById("latest-list");
+  box.textContent = "Lade...";
 
   try {
     const res = await fetch("/api/submit?mode=list");
     const rows = await res.json();
 
-    list.innerHTML = "";
+    box.innerHTML = "";
 
     rows.forEach(row => {
       const div = document.createElement("div");
-
       div.innerHTML = `
-        <strong>${row.bird_id}</strong> – ${row.action}<br>
+        <strong>${row.bird_name}</strong> – ${row.action}<br>
         ${row.date}<br>
         (${row.latitude}, ${row.longitude})<br>
       `;
@@ -530,22 +487,21 @@ async function loadLatest() {
       };
 
       div.appendChild(del);
-      list.appendChild(div);
+      box.appendChild(div);
     });
   } catch (err) {
     console.error(err);
-    list.textContent = "Fehler beim Laden.";
+    box.textContent = "Fehler beim Laden.";
   }
 }
 
 // ------------------------------------------------------------------------
-// POPUP UTILS
+// POPUPS
 // ------------------------------------------------------------------------
 
 function openPopup(id) {
   document.getElementById(id).style.display = "flex";
 }
-
 function closePopup(id) {
   document.getElementById(id).style.display = "none";
 }
