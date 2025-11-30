@@ -1,5 +1,5 @@
 /***************************************************************************
- * Merlotschadaua – FINAL WORKING APP.JS
+ * Merlotschadaua – FINAL WORKING APP.JS (2025-11-30)
  * - Multi-select birds
  * - Correct Baserow numeric action IDs
  * - GPS numeric fix
@@ -27,7 +27,6 @@ const CSV_URL = "/data/view_birdsCSV_apps.csv";
 const DEFAULT_CENTER = [46.7000, 10.0833];
 const OFFLINE_QUEUE_KEY = "merlotschadaua_offline_queue";
 
-// ★ FIX: Baserow actions must be numeric
 const ACTION_IDS = {
   sighted: 4519311,
   maybe: 4519312
@@ -57,7 +56,7 @@ window.addEventListener("load", () => {
 });
 
 // ------------------------------------------------------------------------
-// CSV LOADING
+// CSV
 // ------------------------------------------------------------------------
 
 function loadCSV() {
@@ -83,7 +82,6 @@ function stripBOM(text) {
 
 function parseCSV(text) {
   const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
 
   const header = lines[0]
     .match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
@@ -162,7 +160,7 @@ function toggleColor(side, color, btn) {
 }
 
 // ------------------------------------------------------------------------
-// FILTERING (AND logic)
+// FILTER
 // ------------------------------------------------------------------------
 
 function birdMatches(b) {
@@ -174,9 +172,8 @@ function birdMatches(b) {
 
   return true;
 }
-
 // ------------------------------------------------------------------------
-// TABLE RENDERING
+// RENDER TABLE
 // ------------------------------------------------------------------------
 
 function colorPill(c) {
@@ -212,11 +209,17 @@ function renderBirds() {
       </td>
       <td>
         <div style="display:flex; flex-direction:column; gap:4px;">
-          <button class="submit-btn submit-btn-ghost ${act === "sighted" ? "selected-action" : ""}"
-            data-id="${b.bird_id}" data-action="sighted">beobachtet</button>
+          <button 
+            class="submit-btn submit-btn-ghost ${act === "sighted" ? "selected-action" : ""}"
+            data-id="${b.bird_id}" 
+            data-action="sighted"
+          >beobachtet</button>
 
-          <button class="submit-btn submit-btn-ghost ${act === "maybe" ? "selected-action" : ""}"
-            data-id="${b.bird_id}" data-action="maybe">unsicher</button>
+          <button 
+            class="submit-btn submit-btn-ghost ${act === "maybe" ? "selected-action" : ""}"
+            data-id="${b.bird_id}" 
+            data-action="maybe"
+          >unsicher</button>
         </div>
       </td>
     `;
@@ -269,11 +272,15 @@ function openConfirmationPopup() {
   const entries = [];
 
   for (const [bird_id, action] of perBirdSelection.entries()) {
-    const b = bird_id === "unringed"
-      ? { bird_id: "unringed", name: "unberingt", territory: "" }
-      : birds.find(x => x.bird_id === bird_id);
+    let b;
 
-    if (b) entries.push({ bird: b, action });
+    if (bird_id === "unringed") {
+      b = { bird_id: "unringed", name: "unberingt", territory: "" };
+    } else {
+      b = birds.find(x => x.bird_id === bird_id);
+    }
+
+    if (b) entries.push({ bird: structuredClone(b), action });
   }
 
   if (entries.length === 0) {
@@ -288,12 +295,13 @@ function openConfirmationPopup() {
 function openReportPopup(entries) {
   const el = document.getElementById("popup-bird-info");
 
-  el.textContent =
-    entries.length === 1
-      ? (entries[0].bird.bird_id === "unringed"
-            ? "Unberingter Vogel"
-            : `${entries[0].bird.name} (${entries[0].bird.bird_id})`)
-      : `${entries.length} Vögel ausgewählt`;
+  if (entries.length === 1) {
+    const b = entries[0].bird;
+    if (b.bird_id === "unringed") el.textContent = "Unberingter Vogel";
+    else el.textContent = `${b.name} (${b.bird_id})`;
+  } else {
+    el.textContent = `${entries.length} Vögel ausgewählt`;
+  }
 
   openPopup("popup-report-bg");
   initMap();
@@ -317,6 +325,7 @@ function initMap() {
   ).addTo(map);
 
   marker = L.marker(DEFAULT_CENTER, { draggable: true }).addTo(map);
+
   marker.on("dragend", () => {
     const p = marker.getLatLng();
     updateCoords(p.lat, p.lng);
@@ -357,7 +366,7 @@ function updateCoords(lat, lng) {
 }
 
 // ------------------------------------------------------------------------
-// SAVE → SERVER
+// SAVE REPORTS → SERVER
 // ------------------------------------------------------------------------
 
 async function saveSelectedReports() {
@@ -373,8 +382,8 @@ async function saveSelectedReports() {
 
     const payload = {
       bird_name: b.name || "",
-      bird_id: b.bird_id === "unringed" ? null : b.bird_id,
-      action: ACTION_IDS[entry.action],   // ★ FIXED
+      bird_id: b.bird_id === "unringed" ? "" : b.bird_id,
+      action: ACTION_IDS[entry.action],
       latitude: lat,
       longitude: lng,
       territory: b.territory || ""
@@ -394,13 +403,14 @@ async function saveSelectedReports() {
   }
 
   alert(`Gespeichert: ${successCount} Beobachtungen`);
+
   closePopup("popup-report-bg");
   perBirdSelection.clear();
   renderBirds();
 }
 
 // ------------------------------------------------------------------------
-// QUEUE
+// OFFLINE QUEUE
 // ------------------------------------------------------------------------
 
 function addToOfflineQueue(entry) {
@@ -427,11 +437,10 @@ async function flushOfflineQueue() {
 }
 
 // ------------------------------------------------------------------------
-// SERVER COMMUNICATION ★ FIXED
+// SERVER COMMUNICATION
 // ------------------------------------------------------------------------
 
 async function sendToServer(payload) {
-  // fix GPS types
   function fixNumber(n) {
     if (n === null || n === undefined) return null;
     const x = Number(n);
@@ -447,7 +456,7 @@ async function sendToServer(payload) {
     body: JSON.stringify(payload)
   });
 
-  if (!res.ok) throw new Error("Server response not OK");
+  if (!res.ok) throw new Error("Server not OK");
   return res.json();
 }
 
