@@ -1,5 +1,5 @@
 "bird_id","mark_color","R_top","R_bottom","L_top","L_bottom","territory","territory_name","name","sex","age","dist Punt dal Gal (m)","banded_on"
-"NULL",NULL,NULL,NULL,NULL,NULL,NULL,NULL,"unringed","U","U",NULL,NULL
+"NULL",NULL,NULL,NULL,NULL,NULL,NULL,NULL,"unberingt","U","U",NULL,NULL
 "S228.001","alu/yel - yel/bla","alu","yellow","yellow","black","SP2402","Wehr","Johann","M","U","430",NULL
 "S228.002","red/whi - gre/alu","red","white","green","alu","SP2402","Wehr","Liseli","F","U","430",NULL
 "S228.003","alu/gre - bla/vio","alu","green","black","violet","SP2401","Muur","Glauco","M","3","20",NULL
