@@ -51,40 +51,16 @@
       flex-wrap: wrap;
       gap: 0.4rem;
     }
-
-
-.leg-grid {
-  display: grid;
-  grid-template-columns: 120px repeat(4, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  align-items: center;
-}
-
-.leg-label {
-  font-weight: 700;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-}
-
-.color-button {
-  width: 100%;
-  height: 36px;
-  border-radius: 8px;
-  border: none;
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-.color-button.selected {
-  outline: 3px solid #0056ff;
-  transform: scale(1.05);
-}
-
-    
+    .color-button {
+      padding: 0.4rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.2);
+      color: #fff;
+      cursor: pointer;
+    }
+    .color-button.selected {
+      border: 2px solid black;
+    }
     .btn {
       padding: 0.55rem 0.9rem;
       border-radius: 999px;
@@ -136,39 +112,13 @@
 <body>
   <h1><img src="/favicon.png" class="bird-img" alt="𓅪">Merlotscha d'aua</h1>
 
-<!-- RIGHT LEG -->
-<div class="leg-grid">
-  <!-- Row 1 -->
-  <div class="leg-label">Rechtes Bein</div>
-  <div id="right-1"></div>
-  <div id="right-2"></div>
-  <div id="right-3"></div>
-  <div id="right-4"></div>
+  <div class="panel">
+    <strong>Rechtes Bein</strong>
+    <div id="right-leg" class="color-buttons"></div>
 
-  <!-- Row 2 -->
-  <div id="right-5"></div>
-  <div id="right-6"></div>
-  <div id="right-7"></div>
-  <div id="right-8"></div>
-  <div id="right-9"></div>
-</div>
-
-<!-- LEFT LEG -->
-<div class="leg-grid">
-  <!-- Row 1 -->
-  <div class="leg-label">Linkes Bein</div>
-  <div id="left-1"></div>
-  <div id="left-2"></div>
-  <div id="left-3"></div>
-  <div id="left-4"></div>
-
-  <!-- Row 2 -->
-  <div id="left-5"></div>
-  <div id="left-6"></div>
-  <div id="left-7"></div>
-  <div id="left-8"></div>
-  <div id="left-9"></div>
-</div>
+    <br>
+    <strong>Linkes Bein</strong>
+    <div id="left-leg" class="color-buttons"></div>
 
     <br>
     <button id="btn-reset" class="btn btn-ghost">Reset</button>
