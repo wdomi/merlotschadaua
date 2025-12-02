@@ -383,17 +383,17 @@ async function saveSelectedReports() {
     // FIX: force correct action key
     const actionKey = entry.action === "maybe" ? "maybe" : "sighted";
 
-/*    const payload = {
+    const payload = {
       bird_name: b.name || "",
       bird_id: b.bird_id === "unringed" ? "" : b.bird_id,
       action: ACTION_IDS[actionKey],
-      latitude: lat,
-      longitude: lng,
+      latitude: lat != null ? Number(lat.toFixed(10)) : null,
+      longitude: lng != null ? Number(lng.toFixed(10)) : null,
       territory: b.territory || ""
     };
-*/
 
-    const payload = {
+
+/*    const payload = {
   bird_name: e.row.name,
   bird_id: e.row.bird_id || null,
   action: ACTION_IDS[e.action],
@@ -403,7 +403,7 @@ async function saveSelectedReports() {
   longitude: lng != null ? Number(lng.toFixed(10)) : null,
   territory: territoryText
 };
-
+*/
 
     
     if (!navigator.onLine) {
