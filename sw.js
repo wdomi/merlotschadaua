@@ -1,4 +1,4 @@
-// Name of cache
+/*// Name of cache
 const CACHE_NAME = "merlotschadaua-cache-v1";
 
 // Which requests to cache
@@ -52,3 +52,4 @@ self.addEventListener("fetch", event => {
     })
   );
 });
+*/
