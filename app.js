@@ -383,7 +383,7 @@ async function saveSelectedReports() {
     // FIX: force correct action key
     const actionKey = entry.action === "maybe" ? "maybe" : "sighted";
 
-    const payload = {
+/*    const payload = {
       bird_name: b.name || "",
       bird_id: b.bird_id === "unringed" ? "" : b.bird_id,
       action: ACTION_IDS[actionKey],
@@ -391,7 +391,21 @@ async function saveSelectedReports() {
       longitude: lng,
       territory: b.territory || ""
     };
+*/
 
+    const payload = {
+  bird_name: e.row.name,
+  bird_id: e.row.bird_id || null,
+  action: ACTION_IDS[e.action],
+//  latitude: gps.lat ? Number(gps.lat.toFixed(10)) : null,
+//  longitude: gps.lon ? Number(gps.lon.toFixed(10)) : null,
+  latitude: lat != null ? Number(lat.toFixed(10)) : null,
+  longitude: lng != null ? Number(lng.toFixed(10)) : null,
+  territory: territoryText
+};
+
+
+    
     if (!navigator.onLine) {
       addToOfflineQueue(payload);
       continue;
