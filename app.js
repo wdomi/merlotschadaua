@@ -373,7 +373,12 @@ async function saveSelectedReports() {
   const entries = window._pendingSelections;
   if (!entries) return;
 
+  // Correct lat/lng coming from Leaflet marker
   const { lat, lng } = marker.getLatLng();
+
+  // Round coordinates to max 10 decimals
+  const lat10 = Number(lat.toFixed(10));
+  const lng10 = Number(lng.toFixed(10));
 
   let successCount = 0;
 
@@ -387,13 +392,14 @@ async function saveSelectedReports() {
       bird_name: b.name || "",
       bird_id: b.bird_id === "unringed" ? "" : b.bird_id,
       action: ACTION_IDS[actionKey],
-      latitude: gps.lat ? Number(gps.lat.toFixed(10)) : null,
-      longitude: gps.lon ? Number(gps.lon.toFixed(10)) : null,
+
+      // ✅ FINAL CORRECT LAT/LNG (10 decimals)
+      latitude: lat10,
+      longitude: lng10,
+
       territory: b.territory || ""
     };
 
-
-    
     if (!navigator.onLine) {
       addToOfflineQueue(payload);
       continue;
@@ -413,6 +419,7 @@ async function saveSelectedReports() {
   perBirdSelection.clear();
   renderBirds();
 }
+
 
 // ------------------------------------------------------------------------
 // OFFLINE QUEUE
