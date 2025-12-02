@@ -39,8 +39,8 @@ export default async function handler(req, res) {
   // Build payload EXACTLY matching Baserow fields (NO created_on!!)
   // ---------------------------------------------------------------------------
   const baserowRow = {
-    field_6258633: bird_name,
-    field_6258634: bird_id,
+    field_6258635: body.bird_name,   // BIRD NAME
+    field_6258636: body.bird_id,     // BIRD ID
     field_6258637: action,
     field_6258639: latitude,
     field_6258640: longitude,
