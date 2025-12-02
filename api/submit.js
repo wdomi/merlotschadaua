@@ -48,15 +48,17 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Invalid action" });
 
       // IMPORTANT: flat structure — no "fields"
-      const payload = {
-        field_6258635: b.bird_name || "",
-        field_6258636: b.bird_id || "",
-        field_6258637: action,
-        field_6258639: b.latitude ?? null,
-        field_6258640: b.longitude ?? null,
-        field_6318262: b.territory || "",
-        field_6351349: false
-      };
+      const actionKey = entry.action === "maybe" ? "maybe" : "sighted";
+
+const payload = {
+  bird_name: b.name || "",
+  bird_id: b.bird_id === "unringed" ? "" : b.bird_id,
+  action: ACTION_IDS[actionKey],
+  latitude: lat,
+  longitude: lng,
+  territory: b.territory || ""
+};
+
 
       try {
         const r = await fetch(`${BASEROW_URL}?user_field_names=false`, {
