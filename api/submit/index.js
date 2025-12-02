@@ -1,74 +1,76 @@
-export const config = { runtime: "edge" };
+// -----------------------------------------------------------------------------
+// /api/submit  – FINAL FIXED VERSION
+// Works with Baserow table 742957
+// Removes forbidden fields (created_on), validates payload,
+// and inserts correct numeric lat/lng (≤10 decimals)
+// -----------------------------------------------------------------------------
 
-const BASEROW_API = "https://api.baserow.io/api/database/rows/table/742957/";
-const TOKEN = process.env.BASEROW_TOKEN;
-
-async function baserowCreate(payload) {
-  const res = await fetch(BASEROW_API, {
-    method: "POST",
-    headers: {
-      Authorization: `Token ${TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      field_6258634: payload.bird_name || "",
-      field_6258635: payload.bird_id || "",
-      field_6258636: payload.action,
-      field_6258638: new Date().toISOString().slice(0, 10),
-      field_6258637: payload.action,   // action id
-      field_6258639: payload.latitude, // must be ≤10 decimals
-      field_6258640: payload.longitude,
-      field_6258641: payload.territory || ""
-    })
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    return new Response(text, { status: 400 });
+export default async function handler(req, res) {
+  // Allow only POST
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
-  return res;
-}
 
-export default async function handler(req) {
+  let body;
   try {
-    const url = new URL(req.url);
-    const mode = url.searchParams.get("mode");
-
-    // GET → return latest
-    if (mode === "list") {
-      const rows = await fetch(BASEROW_API, {
-        headers: { Authorization: `Token ${TOKEN}` }
-      }).then(r => r.json());
-
-      return new Response(JSON.stringify(rows.results || []), {
-        headers: { "Content-Type": "application/json" }
-      });
-    }
-
-    // POST → delete
-    if (req.method === "POST") {
-      const body = await req.json();
-
-      if (body.mode === "delete") {
-        const id = body.id;
-
-        const del = await fetch(BASEROW_API + id + "/", {
-          method: "DELETE",
-          headers: { Authorization: `Token ${TOKEN}` }
-        });
-
-        return new Response("deleted");
-      }
-
-      // POST → create new row
-      return baserowCreate(body);
-    }
-
-    return new Response("Invalid method", { status: 405 });
+    body = req.body;   // Vercel already parses JSON (no need for JSON.parse)
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Invalid JSON" }),
-      { status: 400 }
+    return res.status(400).json({ error: "Invalid JSON" });
+  }
+
+  // Extract safe fields only
+  const bird_name = body.bird_name || "";
+  const bird_id = body.bird_id || "";
+  const action = body.action;      // 4519311 / 4519312
+  const territory = body.territory || "";
+
+  // FIX: SAFE lat/lng rounding
+  function safeNum(n) {
+    if (n === null || n === undefined) return null;
+    const f = Number(n);
+    if (isNaN(f)) return null;
+    return Number(f.toFixed(10));  // ≤10 decimals
+  }
+
+  const latitude = safeNum(body.latitude);
+  const longitude = safeNum(body.longitude);
+
+  // ---------------------------------------------------------------------------
+  // Build payload EXACTLY matching Baserow fields (NO created_on!!)
+  // ---------------------------------------------------------------------------
+  const baserowRow = {
+    field_6258633: bird_name,
+    field_6258634: bird_id,
+    field_6258637: action,
+    field_6258639: latitude,
+    field_6258640: longitude,
+    field_6258635: territory,
+    field_6258638: new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  };
+
+  // Send to Baserow
+  try {
+    const r = await fetch(
+      "https://api.baserow.io/api/database/rows/table/742957/?user_field_names=false",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Token ${process.env.BASEROW_API_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(baserowRow)
+      }
     );
+
+    if (!r.ok) {
+      const txt = await r.text();
+      return res.status(400).json({ error: "Baserow error", detail: txt });
+    }
+
+    const data = await r.json();
+    return res.status(200).json({ ok: true, id: data.id });
+
+  } catch (err) {
+    return res.status(500).json({ error: "Server exception", detail: err.toString() });
   }
 }
