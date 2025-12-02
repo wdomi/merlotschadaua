@@ -119,8 +119,12 @@ const b = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
 }
 
 
+
+
 export const config = {
   api: {
-    bodyParser: true
+    bodyParser: {
+      sizeLimit: "1mb"
+    }
   }
 };
