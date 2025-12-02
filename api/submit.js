@@ -1,5 +1,3 @@
-// api/submit.js – FINAL WORKING VERSION
-
 const TABLE_ID = 742957;
 const BASEROW_URL = `https://api.baserow.io/api/database/rows/table/${TABLE_ID}/`;
 
@@ -12,18 +10,15 @@ export default async function handler(req, res) {
     Authorization: `Token ${token}`
   };
 
-  // ---------------------------------------------------------------------
-  // GET — list all non-deleted rows
-  // ---------------------------------------------------------------------
+  // ------------------ LIST ROWS ---------------------
   if (req.method === "GET") {
     try {
-      const url = `${BASEROW_URL}?user_field_names=true`;
-      const r = await fetch(url, { headers });
+      const r = await fetch(`${BASEROW_URL}?user_field_names=true`, { headers });
       const data = await r.json();
 
       if (!r.ok) return res.status(r.status).json({ error: data });
 
-      const filtered = (data.results || []).filter(r => !r.deleted);
+      const filtered = data.results.filter(r => !r.deleted);
 
       return res.status(200).json(
         filtered.map(r => ({
@@ -42,60 +37,30 @@ export default async function handler(req, res) {
     }
   }
 
-  // ---------------------------------------------------------------------
-  // POST — create or delete
-  // ---------------------------------------------------------------------
+  // ------------------ CREATE / DELETE ---------------------
   if (req.method === "POST") {
     const b = req.body || {};
     const mode = b.mode || "create";
 
-    // -------------- CREATE -----------------
-   if (mode === "create") {
-  const action = Number(b.action);
-  if (![4519311, 4519312].includes(action))
-    return res.status(400).json({ error: "Invalid action value" });
+    if (mode === "create") {
+      const action = Number(b.action);
+      if (![4519311, 4519312].includes(action))
+        return res.status(400).json({ error: "Invalid action" });
 
-  // ✅ No "fields" wrapper – send field_* keys at top level
-  const payload = {
-    field_6258635: b.bird_name || "",
-    field_6258636: b.bird_id || "",
-    field_6258637: action,
-    field_6258639: b.latitude ?? null,
-    field_6258640: b.longitude ?? null,
-    field_6318262: b.territory || "",
-    field_6351349: false
-  };
-
-  try {
-    const url = `${BASEROW_URL}?user_field_names=false`;
-    const r = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload)
-    });
-
-    const data = await r.json();
-    if (!r.ok) return res.status(r.status).json({ error: data });
-    return res.status(200).json({ ok: true, row: data });
-
-  } catch (err) {
-    return res.status(500).json({ error: String(err) });
-  }
-}
-
-
-    // -------------- DELETE -----------------
-    if (mode === "delete") {
-      if (!b.id) return res.status(400).json({ error: "id required" });
-
+      // IMPORTANT: flat structure — no "fields"
       const payload = {
-        fields: { field_6351349: true }
+        field_6258635: b.bird_name || "",
+        field_6258636: b.bird_id || "",
+        field_6258637: action,
+        field_6258639: b.latitude ?? null,
+        field_6258640: b.longitude ?? null,
+        field_6318262: b.territory || "",
+        field_6351349: false
       };
 
       try {
-        const url = `${BASEROW_URL}${b.id}/?user_field_names=false`;
-        const r = await fetch(url, {
-          method: "PATCH",
+        const r = await fetch(`${BASEROW_URL}?user_field_names=false`, {
+          method: "POST",
           headers,
           body: JSON.stringify(payload)
         });
@@ -103,8 +68,31 @@ export default async function handler(req, res) {
         const data = await r.json();
         if (!r.ok) return res.status(r.status).json({ error: data });
 
-        return res.status(200).json({ ok: true });
+        return res.status(200).json({ ok: true, row: data });
+      } catch (err) {
+        return res.status(500).json({ error: String(err) });
+      }
+    }
 
+    if (mode === "delete") {
+      if (!b.id) return res.status(400).json({ error: "id required" });
+
+      const payload = { field_6351349: true };
+
+      try {
+        const r = await fetch(
+          `${BASEROW_URL}${b.id}/?user_field_names=false`,
+          {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify(payload)
+          }
+        );
+
+        const data = await r.json();
+        if (!r.ok) return res.status(r.status).json({ error: data });
+
+        return res.status(200).json({ ok: true });
       } catch (err) {
         return res.status(500).json({ error: String(err) });
       }
