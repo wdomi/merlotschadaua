@@ -1,9 +1,16 @@
-export default async function handler(req, res) {
+export const config = {
+  runtime: "edge"
+};
+
+export default async function handler(req) {
   const TABLE_ID = 742957;
   const BASEROW_URL = `https://api.baserow.io/api/database/rows/table/${TABLE_ID}/`;
 
   const token = process.env.BASEROW_TOKEN;
-  if (!token) return res.status(500).json({ error: "BASEROW_TOKEN not set" });
+  if (!token)
+    return new Response(JSON.stringify({ error: "BASEROW_TOKEN not set" }), {
+      status: 500
+    });
 
   const headers = {
     "Content-Type": "application/json",
@@ -11,26 +18,31 @@ export default async function handler(req, res) {
   };
 
   // ---------------------- PARSE JSON BODY ----------------------
+  let b = {};
   if (req.method === "POST") {
     try {
-      const bodyText = await new Response(req.body).text();
-      req.body = JSON.parse(bodyText || "{}");
+      b = await req.json();   // THIS is the correct Edge Runtime parser
     } catch (err) {
-      return res.status(400).json({ error: "Invalid JSON" });
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400
+      });
     }
   }
 
-  // ---------------------- LIST ROWS ----------------------
+  // ---------------------- LIST (GET) ----------------------
   if (req.method === "GET") {
-    try {
-      const r = await fetch(`${BASEROW_URL}?user_field_names=true`, { headers });
-      const data = await r.json();
+    const r = await fetch(`${BASEROW_URL}?user_field_names=true`, { headers });
+    const data = await r.json();
 
-      if (!r.ok) return res.status(r.status).json({ error: data });
+    if (!r.ok)
+      return new Response(JSON.stringify({ error: data }), {
+        status: r.status
+      });
 
-      const filtered = data.results.filter(r => !r.deleted);
+    const filtered = data.results.filter(r => !r.deleted);
 
-      return res.status(200).json(
+    return new Response(
+      JSON.stringify(
         filtered.map(r => ({
           id: r.id,
           bird_name: r.bird_name,
@@ -41,74 +53,75 @@ export default async function handler(req, res) {
           longitude: r.longitude,
           territory: r.territory
         }))
-      );
-    } catch (err) {
-      return res.status(500).json({ error: String(err) });
-    }
+      ),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
   }
 
-  // ---------------------- CREATE / DELETE ----------------------
-  if (req.method === "POST") {
-    const b = req.body || {};
-    const mode = b.mode || "create";
+  // ---------------------- CREATE ----------------------
+  if (req.method === "POST" && (!b.mode || b.mode === "create")) {
+    const action = Number(b.action);
+    if (![4519311, 4519312].includes(action))
+      return new Response(JSON.stringify({ error: "Invalid action" }), {
+        status: 400
+      });
 
-    if (mode === "create") {
-      const action = Number(b.action);
-      if (![4519311, 4519312].includes(action)) {
-        return res.status(400).json({ error: "Invalid action" });
-      }
+    const clean = v => (v === "" ? null : v);
 
-      const payload = {
-        field_6258635: b.bird_name || "",
-        field_6258636: b.bird_id || "",
-        field_6258637: action,
-        field_6258638: new Date().toISOString(), // date
-        field_6258639: b.latitude ?? null,
-        field_6258640: b.longitude ?? null,
-        field_6318262: b.territory || "",
-        field_6351349: false
-      };
+    const payload = {
+      field_6258635: clean(b.bird_name),
+      field_6258636: clean(b.bird_id),
+      field_6258637: action,
+      field_6258638: new Date().toISOString(), // date
+      field_6258639: b.latitude ?? null,
+      field_6258640: b.longitude ?? null,
+      field_6318262: clean(b.territory),
+      field_6351349: false
+    };
 
-      try {
-        const r = await fetch(`${BASEROW_URL}?user_field_names=false`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload)
-        });
+    const r = await fetch(`${BASEROW_URL}?user_field_names=false`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload)
+    });
 
-        const data = await r.json();
-        if (!r.ok) return res.status(r.status).json({ error: data });
+    const data = await r.json();
 
-        return res.status(200).json({ ok: true, row: data });
-      } catch (err) {
-        return res.status(500).json({ error: String(err) });
-      }
-    }
+    if (!r.ok)
+      return new Response(JSON.stringify({ error: data }), {
+        status: r.status
+      });
 
-    if (mode === "delete") {
-      if (!b.id) return res.status(400).json({ error: "id required" });
-
-      const payload = { field_6351349: true };
-
-      try {
-        const r = await fetch(`${BASEROW_URL}${b.id}/?user_field_names=false`, {
-          method: "PATCH",
-          headers,
-          body: JSON.stringify(payload)
-        });
-
-        const data = await r.json();
-        if (!r.ok) return res.status(r.status).json({ error: data });
-
-        return res.status(200).json({ ok: true });
-      } catch (err) {
-        return res.status(500).json({ error: String(err) });
-      }
-    }
-
-    return res.status(400).json({ error: "Unknown mode" });
+    return new Response(JSON.stringify({ ok: true, row: data }), {
+      status: 200
+    });
   }
 
-  res.setHeader("Allow", ["GET", "POST"]);
-  return res.status(405).end("Method Not Allowed");
+  // ---------------------- DELETE ----------------------
+  if (req.method === "POST" && b.mode === "delete") {
+    if (!b.id)
+      return new Response(JSON.stringify({ error: "id required" }), {
+        status: 400
+      });
+
+    const payload = { field_6351349: true };
+
+    const r = await fetch(`${BASEROW_URL}${b.id}/?user_field_names=false`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    const data = await r.json();
+    if (!r.ok)
+      return new Response(JSON.stringify({ error: data }), {
+        status: r.status
+      });
+
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  }
+
+  return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
+    status: 405
+  });
 }
