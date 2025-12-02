@@ -50,39 +50,39 @@ export default async function handler(req, res) {
     const mode = b.mode || "create";
 
     // -------------- CREATE -----------------
-    if (mode === "create") {
-      const action = Number(b.action);
-      if (![4519311, 4519312].includes(action))
-        return res.status(400).json({ error: "Invalid action value" });
+   if (mode === "create") {
+  const action = Number(b.action);
+  if (![4519311, 4519312].includes(action))
+    return res.status(400).json({ error: "Invalid action value" });
 
-      const payload = {
-        fields: {
-          field_6258635: b.bird_name || "",
-          field_6258636: b.bird_id || "",
-          field_6258637: action,
-          field_6258639: b.latitude ?? null,
-          field_6258640: b.longitude ?? null,
-          field_6318262: b.territory || "",
-          field_6351349: false
-        }
-      };
+  // ✅ No "fields" wrapper – send field_* keys at top level
+  const payload = {
+    field_6258635: b.bird_name || "",
+    field_6258636: b.bird_id || "",
+    field_6258637: action,
+    field_6258639: b.latitude ?? null,
+    field_6258640: b.longitude ?? null,
+    field_6318262: b.territory || "",
+    field_6351349: false
+  };
 
-      try {
-        const url = `${BASEROW_URL}?user_field_names=false`;
-        const r = await fetch(url, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload)
-        });
+  try {
+    const url = `${BASEROW_URL}?user_field_names=false`;
+    const r = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload)
+    });
 
-        const data = await r.json();
-        if (!r.ok) return res.status(r.status).json({ error: data });
-        return res.status(200).json({ ok: true, row: data });
+    const data = await r.json();
+    if (!r.ok) return res.status(r.status).json({ error: data });
+    return res.status(200).json({ ok: true, row: data });
 
-      } catch (err) {
-        return res.status(500).json({ error: String(err) });
-      }
-    }
+  } catch (err) {
+    return res.status(500).json({ error: String(err) });
+  }
+}
+
 
     // -------------- DELETE -----------------
     if (mode === "delete") {
