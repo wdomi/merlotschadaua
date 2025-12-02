@@ -1,127 +1,74 @@
-export const config = {
-  runtime: "edge"
-};
+export const config = { runtime: "edge" };
+
+const BASEROW_API = "https://api.baserow.io/api/database/rows/table/742957/";
+const TOKEN = process.env.BASEROW_TOKEN;
+
+async function baserowCreate(payload) {
+  const res = await fetch(BASEROW_API, {
+    method: "POST",
+    headers: {
+      Authorization: `Token ${TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      field_6258634: payload.bird_name || "",
+      field_6258635: payload.bird_id || "",
+      field_6258636: payload.action,
+      field_6258638: new Date().toISOString().slice(0, 10),
+      field_6258637: payload.action,   // action id
+      field_6258639: payload.latitude, // must be ≤10 decimals
+      field_6258640: payload.longitude,
+      field_6258641: payload.territory || ""
+    })
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    return new Response(text, { status: 400 });
+  }
+  return res;
+}
 
 export default async function handler(req) {
-  const TABLE_ID = 742957;
-  const BASEROW_URL = `https://api.baserow.io/api/database/rows/table/${TABLE_ID}/`;
+  try {
+    const url = new URL(req.url);
+    const mode = url.searchParams.get("mode");
 
-  const token = process.env.BASEROW_TOKEN;
-  if (!token)
-    return new Response(JSON.stringify({ error: "BASEROW_TOKEN not set" }), {
-      status: 500
-    });
+    // GET → return latest
+    if (mode === "list") {
+      const rows = await fetch(BASEROW_API, {
+        headers: { Authorization: `Token ${TOKEN}` }
+      }).then(r => r.json());
 
-  const headers = {
-    "Content-Type": "application/json",
-    Authorization: `Token ${token}`
-  };
-
-  // ---------------------- PARSE JSON BODY ----------------------
-  let b = {};
-  if (req.method === "POST") {
-    try {
-      b = await req.json();   // THIS is the correct Edge Runtime parser
-    } catch (err) {
-      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-        status: 400
+      return new Response(JSON.stringify(rows.results || []), {
+        headers: { "Content-Type": "application/json" }
       });
     }
-  }
 
-  // ---------------------- LIST (GET) ----------------------
-  if (req.method === "GET") {
-    const r = await fetch(`${BASEROW_URL}?user_field_names=true`, { headers });
-    const data = await r.json();
+    // POST → delete
+    if (req.method === "POST") {
+      const body = await req.json();
 
-    if (!r.ok)
-      return new Response(JSON.stringify({ error: data }), {
-        status: r.status
-      });
+      if (body.mode === "delete") {
+        const id = body.id;
 
-    const filtered = data.results.filter(r => !r.deleted);
+        const del = await fetch(BASEROW_API + id + "/", {
+          method: "DELETE",
+          headers: { Authorization: `Token ${TOKEN}` }
+        });
 
+        return new Response("deleted");
+      }
+
+      // POST → create new row
+      return baserowCreate(body);
+    }
+
+    return new Response("Invalid method", { status: 405 });
+  } catch (err) {
     return new Response(
-      JSON.stringify(
-        filtered.map(r => ({
-          id: r.id,
-          bird_name: r.bird_name,
-          bird_id: r.bird_id,
-          action: r.action?.value ?? r.action,
-          date: r.date,
-          latitude: r.latitude,
-          longitude: r.longitude,
-          territory: r.territory
-        }))
-      ),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Invalid JSON" }),
+      { status: 400 }
     );
   }
-
-  // ---------------------- CREATE ----------------------
-  if (req.method === "POST" && (!b.mode || b.mode === "create")) {
-    const action = Number(b.action);
-    if (![4519311, 4519312].includes(action))
-      return new Response(JSON.stringify({ error: "Invalid action" }), {
-        status: 400
-      });
-
-    const clean = v => (v === "" ? null : v);
-
-    const payload = {
-      field_6258635: clean(b.bird_name),
-      field_6258636: clean(b.bird_id),
-      field_6258637: action,
-      field_6258638: new Date().toISOString(), // date
-      field_6258639: b.latitude ?? null,
-      field_6258640: b.longitude ?? null,
-      field_6318262: clean(b.territory),
-      field_6351349: false
-    };
-
-    const r = await fetch(`${BASEROW_URL}?user_field_names=false`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload)
-    });
-
-    const data = await r.json();
-
-    if (!r.ok)
-      return new Response(JSON.stringify({ error: data }), {
-        status: r.status
-      });
-
-    return new Response(JSON.stringify({ ok: true, row: data }), {
-      status: 200
-    });
-  }
-
-  // ---------------------- DELETE ----------------------
-  if (req.method === "POST" && b.mode === "delete") {
-    if (!b.id)
-      return new Response(JSON.stringify({ error: "id required" }), {
-        status: 400
-      });
-
-    const payload = { field_6351349: true };
-
-    const r = await fetch(`${BASEROW_URL}${b.id}/?user_field_names=false`, {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify(payload)
-    });
-
-    const data = await r.json();
-    if (!r.ok)
-      return new Response(JSON.stringify({ error: data }), {
-        status: r.status
-      });
-
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
-  }
-
-  return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
-    status: 405
-  });
 }
