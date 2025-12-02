@@ -45,7 +45,6 @@ export default async function handler(req, res) {
     field_6258639: latitude,
     field_6258640: longitude,
     field_6258635: territory,
-    field_6258638: new Date().toISOString().slice(0, 10) // YYYY-MM-DD
   };
 
   // Send to Baserow
