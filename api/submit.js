@@ -48,7 +48,7 @@ export default async function handler(req, res) {
    * POST — CREATE OR DELETE ROWS
    * ------------------------------------------------------ */
   if (req.method === "POST") {
-    const b = req.body || {};
+const b = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
     const mode = b.mode || "create";
 
     /* ---------------- CREATE ------------------- */
