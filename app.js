@@ -319,10 +319,18 @@ function initMap() {
 
   map = L.map("map").setView(DEFAULT_CENTER, 12);
 
-  L.tileLayer(
-    "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg",
-    { maxZoom: 19 }
-  ).addTo(map);
+L.tileLayer(
+  "https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}.png?key=YOUR_MAPTILER_KEY",
+  {
+    maxZoom: 20,
+    tileSize: 512,
+    zoomOffset: -1,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+      '&copy; <a href="https://www.maptiler.com/">MapTiler</a>'
+  }
+).addTo(map);
+
 
   marker = L.marker(DEFAULT_CENTER, { draggable: true }).addTo(map);
 
