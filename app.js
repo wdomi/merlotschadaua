@@ -320,7 +320,7 @@ function initMap() {
   map = L.map("map").setView(DEFAULT_CENTER, 12);
 
 L.tileLayer(
-  "https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}.png?key=hTUZRiAhto38o94bZonV",
+  "https://api.maptiler.com/maps/topo-v4/{z}/{x}/{y}.png?key=hTUZRiAhto38o94bZonV",
   {
     maxZoom: 20,
     tileSize: 512,
