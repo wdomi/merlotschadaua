@@ -16,6 +16,8 @@
   />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+
+  
   <style>
     :root {
       --muted: #666;
@@ -118,6 +120,11 @@
     .small-muted {
       font-size: 12px;
       color: #555;
+    }
+
+    /* For offline status Meldung */
+    #offline-status {
+      margin-top: 4px;
     }
 
     /* SECTIONS / PANELS */
@@ -298,6 +305,10 @@
         font-size: 13px;
       }
     }
+
+
+  
+    
   </style>
 </head>
 
@@ -320,6 +331,8 @@
       <div class="small-muted">Max. 2 Ringfarben pro Bein auswählen.</div>
     </div>
   </header>
+
+    <div id="offline-status" class="small-muted" style="display:none;"></div>
 
   <div class="section">
     <div class="leg-title">Rechtes Bein</div>
