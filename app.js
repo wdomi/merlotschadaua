@@ -26,6 +26,41 @@ const CSV_URL = "/data/view_birdsCSV_apps.csv";
 const DEFAULT_CENTER = [46.7000, 10.0833];
 const OFFLINE_QUEUE_KEY = "merlotschadaua_offline_queue";
 
+function getOfflineQueue() {
+  try {
+    return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function setOfflineQueue(q) {
+  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q || []));
+}
+
+function updateOfflineBanner() {
+  const el = document.getElementById("offline-status");
+  if (!el) return;
+
+  const q = getOfflineQueue();
+  const count = q.length;
+
+  if (!count) {
+    el.style.display = "none";
+    el.textContent = "";
+    return;
+  }
+
+  const text =
+    count === 1
+      ? "1 Beobachtung lokal gespeichert, wird abgeschickt sobald es wieder Signal gibt."
+      : `${count} Beobachtungen lokal gespeichert, werden abgeschickt sobald es wieder Signal gibt.`;
+
+  el.textContent = text;
+  el.style.display = "block";
+}
+
+
 const ACTION_IDS = {
   sighted: 4519311,
   maybe: 4519312
@@ -51,8 +86,18 @@ window.addEventListener("load", () => {
   console.log("Initializing app…");
   loadCSV();
   setupButtons();
-  flushOfflineQueue();
+  updateOfflineBanner();
+  flushOfflineQueue(); // try to send any old queued observations
 });
+
+window.addEventListener("online", () => {
+  flushOfflineQueue(true); // show message when queued obs are sent
+});
+
+window.addEventListener("offline", () => {
+  updateOfflineBanner();
+});
+
 
 // ------------------------------------------------------------------------
 // CSV
@@ -381,35 +426,30 @@ async function saveSelectedReports() {
   const entries = window._pendingSelections;
   if (!entries) return;
 
-  // Correct lat/lng coming from Leaflet marker
   const { lat, lng } = marker.getLatLng();
 
-  // Round coordinates to max 10 decimals
   const lat10 = Number(lat.toFixed(10));
   const lng10 = Number(lng.toFixed(10));
 
   let successCount = 0;
+  let offlineCount = 0;
 
   for (const entry of entries) {
     const b = entry.bird;
-
-    // FIX: force correct action key
     const actionKey = entry.action === "maybe" ? "maybe" : "sighted";
 
     const payload = {
       bird_name: b.name || "",
       bird_id: b.bird_id === "unringed" ? "" : b.bird_id,
       action: ACTION_IDS[actionKey],
-
-      // ✅ FINAL CORRECT LAT/LNG (10 decimals)
       latitude: lat10,
       longitude: lng10,
-
       territory: b.territory || ""
     };
 
     if (!navigator.onLine) {
       addToOfflineQueue(payload);
+      offlineCount++;
       continue;
     }
 
@@ -421,11 +461,25 @@ async function saveSelectedReports() {
     }
   }
 
-  alert(`Gespeichert: ${successCount} Beobachtungen`);
+  // User feedback
+  if (offlineCount && !successCount) {
+    alert(
+      offlineCount === 1
+        ? "1 Beobachtung wurde lokal gespeichert und wird abgeschickt, sobald wieder Signal vorhanden ist."
+        : `${offlineCount} Beobachtungen wurden lokal gespeichert und werden abgeschickt, sobald wieder Signal vorhanden ist.`
+    );
+  } else if (offlineCount && successCount) {
+    alert(
+      `${successCount} Beobachtungen wurden gesendet, ${offlineCount} weitere wurden lokal gespeichert (offline).`
+    );
+  } else {
+    alert(`Gespeichert: ${successCount} Beobachtungen`);
+  }
 
   closePopup("popup-report-bg");
   perBirdSelection.clear();
   renderBirds();
+  updateOfflineBanner();
 }
 
 
@@ -434,27 +488,52 @@ async function saveSelectedReports() {
 // ------------------------------------------------------------------------
 
 function addToOfflineQueue(entry) {
-  const q = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || "[]");
-  q.push(entry);
-  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q));
+  const q = getOfflineQueue();
+  q.push({
+    ...entry,
+    queued_at: new Date().toISOString()
+  });
+  setOfflineQueue(q);
+  updateOfflineBanner();
 }
 
-async function flushOfflineQueue() {
-  if (!navigator.onLine) return;
+async function flushOfflineQueue(showNotification = false) {
+  if (!navigator.onLine) {
+    updateOfflineBanner();
+    return;
+  }
 
-  const q = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || "[]");
-  if (!q.length) return;
+  const q = getOfflineQueue();
+  if (!q.length) {
+    updateOfflineBanner();
+    return;
+  }
+
+  let sent = 0;
+  const remaining = [];
 
   for (const entry of q) {
     try {
       await sendToServer(entry);
-    } catch {
-      return;
+      sent++;
+    } catch (err) {
+      console.error("Offline queue send failed, keeping entry:", err);
+      remaining.push(entry);
     }
   }
 
-  localStorage.removeItem(OFFLINE_QUEUE_KEY);
+  setOfflineQueue(remaining);
+  updateOfflineBanner();
+
+  if (showNotification && sent > 0) {
+    alert(
+      sent === 1
+        ? "1 lokal gespeicherte Beobachtung wurde übertragen."
+        : `${sent} lokal gespeicherte Beobachtungen wurden übertragen.`
+    );
+  }
 }
+
 
 // ------------------------------------------------------------------------
 // SERVER COMMUNICATION
