@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dipper-Finder</title>
+
+  <link rel="icon" href="/favicon.png" type="image/png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2a4d69" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --muted: #666;
+      --accent: #2a4d69;
+      --bg: #f8f8f8;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      margin: 0;
+      padding: 12px;
+      background: var(--bg);
+      color: #222;
+    }
+
+    header { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+    .header-top-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    h1 { font-size:24px; margin:0; display:flex; align-items:center; gap:8px; }
+    .bird-img { width:48px; height:48px; }
+
+    .header-buttons { display:flex; flex-direction:column; gap:6px; }
+    .round-btn {
+      padding:6px 12px; border-radius:999px; border:1px solid #bbb;
+      font-size:14px; cursor:pointer; background:#eee; color:#222;
+      text-decoration:none; text-align:center;
+    }
+    .round-btn-primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+    .top-actions { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .reset-btn { padding:6px 12px; border-radius:999px; border:1px solid #bbb; background:#eee; cursor:pointer; }
+
+    .section {
+      background:white; border-radius:10px; padding:8px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.06); margin:8px 0;
+    }
+
+    .leg-title { font-weight:600; margin:4px 4px 6px; font-size:14px; }
+
+    .color-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; }
+    .color-button {
+      font-size:12px; font-weight:700; height:30px;
+      border-radius:8px; border:2px solid transparent; cursor:pointer;
+      color:white;
+    }
+    .color-button.selected { border-color:#000; }
+
+    .submit-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .submit-btn {
+      padding:8px 12px; border-radius:999px; border:1px solid #bbb;
+      cursor:pointer; font-size:14px;
+    }
+    .submit-btn-primary { background:var(--accent); color:white; border-color:var(--accent); }
+    .submit-btn-ghost { background:#eee; }
+
+    .inline-link {
+      font-size:13px; line-height:1.05;
+      color:var(--accent); text-decoration:underline; cursor:pointer;
+    }
+
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:8px 6px; border-bottom:1px solid #e6e6e6; font-size:14px; }
+
+    .popup-bg {
+      position:fixed; inset:0; background:rgba(0,0,0,.55);
+      display:none; align-items:center; justify-content:center; z-index:1000;
+    }
+    .popup {
+      background:#fff; border-radius:10px; max-width:420px;
+      width:95%; padding:14px; max-height:90vh; overflow:auto;
+    }
+    #map, #map-manual { height:260px; border-radius:8px; margin-top:6px; }
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="header-top-row">
+    <h1><img src="/favicon.png" class="bird-img">Dipper Finder</h1>
+    <div class="header-buttons">
+      <a href="https://nest-logger.vercel.app" class="round-btn round-btn-primary">Nest Logger</a>
+      <a href="https://wdomi.github.io/dipper_map/" class="round-btn round-btn-primary">Nests Map</a>
+    </div>
+  </div>
+
+  <div class="top-actions">
+    <button id="btn-reset" class="reset-btn">Zurücksetzen</button>
+  </div>
+</header>
+
+<div class="section">
+  <div class="leg-title">Rechtes Bein</div>
+  <div id="right-leg" class="color-grid"></div>
+</div>
+
+<div class="section">
+  <div class="leg-title">Linkes Bein</div>
+  <div id="left-leg" class="color-grid"></div>
+</div>
+
+<div class="section submit-area">
+  <div class="submit-row">
+    <button id="btn-report" class="submit-btn submit-btn-primary">Beobachtung melden</button>
+    <button id="btn-unringed" class="submit-btn submit-btn-ghost">unberingt melden</button>
+    <button id="btn-latest" class="submit-btn submit-btn-ghost">Letzte Beobachtungen</button>
+
+    <a id="lnk-manual" class="inline-link">
+      Beobachtungen<br>nachträglich eingeben
+    </a>
+  </div>
+</div>
+
+<div id="popup-manual-bg" class="popup-bg">
+  <div class="popup">
+    <h3>Beobachtung nachträglich eingeben</h3>
+
+    <input id="manual-date" type="date"><br><br>
+    <input id="manual-time" type="time" step="1"><br><br>
+
+    <select id="manual-bird"></select><br><br>
+
+    <select id="manual-r-top"></select>
+    <select id="manual-r-bottom"></select><br>
+    <select id="manual-l-top"></select>
+    <select id="manual-l-bottom"></select><br><br>
+
+    <select id="manual-typ">
+      <option value="4519311">beobachtet</option>
+      <option value="4519312">unsicher</option>
+    </select>
+
+    <div id="map-manual"></div>
+
+    <input id="manual-lat" placeholder="lat">
+    <input id="manual-lon" placeholder="lon">
+
+    <div style="margin-top:8px;">
+      <button id="btn-manual-save" class="submit-btn submit-btn-primary">Speichern</button>
+      <button class="submit-btn" onclick="closePopup('popup-manual-bg')">Schliessen</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
