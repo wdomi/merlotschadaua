@@ -481,19 +481,12 @@ async function loadLatest() {
   openPopup("popup-latest-bg");
 
   const box = document.getElementById("latest-list");
-  if (!box) return;
   box.textContent = "Lade...";
 
   try {
-    const res = await fetch("/api/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "list" })
-    });
-
-    if (!res.ok) throw new Error("Server not OK");
-
+    const res = await fetch("/api/submit?mode=list");
     const rows = await res.json();
+
     box.innerHTML = "";
 
     rows.forEach(row => {
@@ -520,7 +513,7 @@ async function loadLatest() {
     });
   } catch (err) {
     console.error(err);
-    box.textContent = "Fehler beim Laden";
+    box.textContent = "Fehler beim Laden.";
   }
 }
 
