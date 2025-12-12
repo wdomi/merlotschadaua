@@ -194,6 +194,20 @@ function toggleColor(side, color, btn) {
 }
 
 // ------------------------------------------------------------------------
+// HELPER
+// ------------------------------------------------------------------------
+
+
+function findBirdByRings({ R_top, R_bottom, L_top, L_bottom }) {
+  return birds.filter(b =>
+    (!R_top || b.R_top === R_top) &&
+    (!R_bottom || b.R_bottom === R_bottom) &&
+    (!L_top || b.L_top === L_top) &&
+    (!L_bottom || b.L_bottom === L_bottom)
+  );
+}
+
+// ------------------------------------------------------------------------
 // FILTER & RENDER TABLE
 // ------------------------------------------------------------------------
 
@@ -703,6 +717,30 @@ function openManualPopup() {
   fillSelectOptions(document.getElementById("manual-l-top"), uniqNonEmpty(birds.map(b => b.L_top)));
   fillSelectOptions(document.getElementById("manual-l-bottom"), uniqNonEmpty(birds.map(b => b.L_bottom)));
 
+  // --- reverse lookup: rings → bird ---
+const rt = document.getElementById("manual-r-top");
+const rb = document.getElementById("manual-r-bottom");
+const lt = document.getElementById("manual-l-top");
+const lb = document.getElementById("manual-l-bottom");
+
+function trySelectBirdFromRings() {
+  const matches = findBirdByRings({
+    R_top: rt.value,
+    R_bottom: rb.value,
+    L_top: lt.value,
+    L_bottom: lb.value
+  });
+
+  if (matches.length === 1) {
+    birdSel.value = matches[0].bird_id;
+  }
+}
+
+[rt, rb, lt, lb].forEach(el => {
+  if (el) el.onchange = trySelectBirdFromRings;
+});
+
+  
   const now = new Date();
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
