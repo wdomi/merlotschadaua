@@ -485,9 +485,15 @@ async function loadLatest() {
   box.textContent = "Lade...";
 
   try {
-    const res = await fetch("/api/submit?mode=list");
-    const rows = await res.json();
+    const res = await fetch("/api/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "list" })
+    });
 
+    if (!res.ok) throw new Error("Server not OK");
+
+    const rows = await res.json();
     box.innerHTML = "";
 
     rows.forEach(row => {
@@ -517,6 +523,7 @@ async function loadLatest() {
     box.textContent = "Fehler beim Laden.";
   }
 }
+
 
 // ------------------------------------------------------------------------
 // POPUPS
