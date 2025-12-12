@@ -520,9 +520,10 @@ async function loadLatest() {
     });
   } catch (err) {
     console.error(err);
-    box.textContent = "Fehler beim Laden.";
+    box.textContent = "Fehler beim Laden";
   }
 }
+
 
 
 // ------------------------------------------------------------------------
