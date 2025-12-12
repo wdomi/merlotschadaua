@@ -534,7 +534,7 @@ async function loadLatest() {
         await fetch("/api/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "delete", id: row.id })
+          body: JSON.stringify({ mode: "set_deleted", id: row.id, deleted: true })
         });
         loadLatest();
       };
