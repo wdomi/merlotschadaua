@@ -207,12 +207,15 @@ function birdMatches(b) {
   return true;
 }
 
+
 function colorPill(c) {
   if (!c) return "";
   const hex = COLOR_PALETTE[c] || "#777";
   const text = c === "white" ? "#000" : "#fff";
-  return `<span style="background:${hex};color:${text};padding:2px 4px;border-radius:4px;font-size:11px;">${c}</span>`;
+  const label = c.slice(0, 3);   // 👈 ONLY FIRST 3 LETTERS
+  return `<span style="background:${hex};color:${text};padding:2px 4px;border-radius:4px;font-size:11px;">${label}</span>`;
 }
+
 
 function renderBirds() {
   const body = document.getElementById("birds-body");
