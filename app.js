@@ -265,7 +265,15 @@ function setupButtons() {
   };
 
   document.getElementById("btn-report").onclick = openConfirmationPopup;
-  document.getElementById("btn-latest").onclick = loadLatest;
+//  document.getElementById("btn-latest").onclick = loadLatest;
+
+  const latestLink = document.getElementById("lnk-latest");
+if (latestLink) {
+  latestLink.onclick = (e) => {
+    e.preventDefault();
+    loadLatest();
+  };
+}
 
   const manualLink = document.getElementById("lnk-manual");
   if (manualLink) manualLink.onclick = openManualPopup;
