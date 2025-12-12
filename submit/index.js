@@ -38,7 +38,18 @@ export default async function handler(req, res) {
       }
 
       const data = await r.json();
-      return res.status(200).json(data.results || []);
+return res.status(200).json(
+  (data.results || []).map(r => ({
+    id: r.id,
+    bird_name: r.field_6258635 || "",
+    bird_id: r.field_6258636 || "",
+    action: r.field_6258637?.value ?? r.field_6258637,
+    latitude: r.field_6258639,
+    longitude: r.field_6258640,
+    territory: r.field_6258643,
+    deleted: r.field_DELETED
+  }))
+);
     } catch (err) {
       return res.status(500).json({ error: err.toString() });
     }
