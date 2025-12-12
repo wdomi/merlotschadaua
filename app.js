@@ -492,24 +492,40 @@ async function loadLatest() {
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err);
+      const t = await res.text();
+      throw new Error("HTTP error: " + t);
     }
 
-    const rows = await res.json();
+    const data = await res.json();
 
-    if (!Array.isArray(rows)) {
+    // ✅ ACCEPT MULTIPLE BACKEND FORMATS
+    let rows;
+    if (Array.isArray(data)) {
+      rows = data;
+    } else if (Array.isArray(data.results)) {
+      rows = data.results;
+    } else if (Array.isArray(data.rows)) {
+      rows = data.rows;
+    } else {
+      console.error("Unexpected response:", data);
       throw new Error("Invalid response format");
     }
 
     box.innerHTML = "";
 
+    if (rows.length === 0) {
+      box.textContent = "Keine Beobachtungen vorhanden.";
+      return;
+    }
+
     rows.forEach(row => {
       const div = document.createElement("div");
       div.innerHTML = `
-        <strong>${row.bird_name}</strong> – ${row.action}<br>
-        ${row.date}<br>
-        (${row.latitude}, ${row.longitude})<br>
+        <strong>${row.bird_name || row.field_6258635 || "?"}</strong>
+        – ${row.action || row.field_6258637}<br>
+        ${row.date || row.created_on || ""}<br>
+        (${row.latitude || row.field_6258639},
+         ${row.longitude || row.field_6258640})<br>
       `;
 
       const del = document.createElement("button");
@@ -532,6 +548,7 @@ async function loadLatest() {
     box.textContent = "Fehler beim Laden.";
   }
 }
+
 
 
 
