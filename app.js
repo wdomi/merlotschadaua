@@ -481,11 +481,26 @@ async function loadLatest() {
   openPopup("popup-latest-bg");
 
   const box = document.getElementById("latest-list");
+  if (!box) return;
   box.textContent = "Lade...";
 
   try {
-    const res = await fetch("/api/submit?mode=list");
+    const res = await fetch("/api/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "list" })
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err);
+    }
+
     const rows = await res.json();
+
+    if (!Array.isArray(rows)) {
+      throw new Error("Invalid response format");
+    }
 
     box.innerHTML = "";
 
@@ -511,8 +526,9 @@ async function loadLatest() {
       div.appendChild(del);
       box.appendChild(div);
     });
+
   } catch (err) {
-    console.error(err);
+    console.error("loadLatest failed:", err);
     box.textContent = "Fehler beim Laden.";
   }
 }
