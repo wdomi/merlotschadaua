@@ -88,9 +88,13 @@
 </head>
 
 <body>
+
 <header>
   <div class="header-top-row">
-    <h1><img src="/favicon.png" class="bird-img">Dipper Finder</h1>
+    <h1>
+      <img src="/favicon.png" class="bird-img">
+      Dipper Finder
+    </h1>
     <div class="header-buttons">
       <a href="https://nest-logger.vercel.app" class="round-btn round-btn-primary">Nest Logger</a>
       <a href="https://wdomi.github.io/dipper_map/" class="round-btn round-btn-primary">Nests Map</a>
@@ -102,6 +106,10 @@
   </div>
 </header>
 
+<div id="offline-status" class="small-muted" style="display:none;"></div>
+
+<!-- ===================== RING FILTERS ===================== -->
+
 <div class="section">
   <div class="leg-title">Rechtes Bein</div>
   <div id="right-leg" class="color-grid"></div>
@@ -111,6 +119,8 @@
   <div class="leg-title">Linkes Bein</div>
   <div id="left-leg" class="color-grid"></div>
 </div>
+
+<!-- ===================== ACTION BUTTONS ===================== -->
 
 <div class="section submit-area">
   <div class="submit-row">
@@ -123,7 +133,10 @@
     </a>
   </div>
 </div>
-  <div class="section">
+
+<!-- ===================== BIRD LIST ===================== -->
+
+<div class="section">
   <h3 style="margin:4px 2px 8px;">Alle Vögel</h3>
   <table id="birds-table">
     <thead>
@@ -138,6 +151,36 @@
     <tbody id="birds-body"></tbody>
   </table>
 </div>
+
+<!-- ===================== NORMAL REPORT POPUP ===================== -->
+
+<div id="popup-report-bg" class="popup-bg">
+  <div class="popup">
+    <h3>Beobachtung melden</h3>
+    <p id="popup-bird-info"></p>
+
+    <div id="map"></div>
+    <div id="coords-display">Lat: — , Lng: —</div>
+
+    <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+      <button id="btn-find-me" class="submit-btn submit-btn-ghost">Finde mich</button>
+      <button id="btn-save-report" class="submit-btn submit-btn-primary">Speichern</button>
+      <button class="submit-btn submit-btn-ghost" onclick="closePopup('popup-report-bg')">Schliessen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== LATEST OBSERVATIONS POPUP ===================== -->
+
+<div id="popup-latest-bg" class="popup-bg">
+  <div class="popup">
+    <h3>Letzte Beobachtungen</h3>
+    <button class="submit-btn submit-btn-ghost" onclick="closePopup('popup-latest-bg')">Schliessen</button>
+    <div id="latest-list">Lade...</div>
+  </div>
+</div>
+
+<!-- ===================== MANUAL ENTRY POPUP ===================== -->
 
 <div id="popup-manual-bg" class="popup-bg">
   <div class="popup">
@@ -165,11 +208,13 @@
 
     <div style="margin-top:8px;">
       <button id="btn-manual-save" class="submit-btn submit-btn-primary">Speichern</button>
-      <button class="submit-btn" onclick="closePopup('popup-manual-bg')">Schliessen</button>
+      <button class="submit-btn submit-btn-ghost" onclick="closePopup('popup-manual-bg')">Schliessen</button>
     </div>
   </div>
 </div>
 
 <script src="/app.js"></script>
+
 </body>
+
 </html>
