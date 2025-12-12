@@ -269,6 +269,16 @@ function setupButtons() {
 
   const manualLink = document.getElementById("lnk-manual");
   if (manualLink) manualLink.onclick = openManualPopup;
+
+    // unringed melden
+  const unringedBtn = document.getElementById("btn-unringed");
+  if (unringedBtn) {
+    unringedBtn.onclick = () => {
+      perBirdSelection.clear();
+      perBirdSelection.set("unringed", "sighted");
+      openConfirmationPopup();
+    };
+  }
 }
 // ------------------------------------------------------------------------
 // CONFIRMATION POPUP → MAP POPUP
