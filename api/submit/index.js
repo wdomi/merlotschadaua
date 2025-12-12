@@ -28,7 +28,7 @@ export default async function handler(req, res) {
   if (body.mode === "list") {
     try {
       const r = await fetch(
-        `${BASE_URL}&filter__field_DELETED__equal=false&size=50`,
+        `${BASE_URL}&filter__field_DELETED__equal=false&size=30`,
         { method: "GET", headers }
       );
 
@@ -41,6 +41,7 @@ export default async function handler(req, res) {
 return res.status(200).json(
   (data.results || []).map(r => ({
     id: r.id,
+    date: r.field_6258638 || "",
     bird_name: r.field_6258635 || "",
     bird_id: r.field_6258636 || "",
     action: r.field_6258637?.value ?? r.field_6258637,
@@ -89,6 +90,7 @@ return res.status(200).json(
   // ===========================================================================
   // EXISTING CREATE LOGIC (UNCHANGED)
   // ===========================================================================
+  const date = body.date || "";
   const bird_name = body.bird_name || "";
   const bird_id = body.bird_id || "";
   const action = body.action;
@@ -105,6 +107,7 @@ return res.status(200).json(
   const longitude = safeNum(body.longitude);
 
   const baserowRow = {
+    field_6258638: date,
     field_6258635: bird_name,
     field_6258636: bird_id,
     field_6258637: action,
