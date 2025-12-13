@@ -341,7 +341,7 @@ function initMap() {
     const lon = Number(lonEl.value);
     if (!isNaN(lat) && !isNaN(lon)) {
       marker.setLatLng([lat, lon]);
-      map.setView([lat, lon]);
+      map.setView([lat, lon], map.getZoom());
     }
   }
 
