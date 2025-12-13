@@ -378,8 +378,9 @@ async function saveSelectedReports() {
 
   const lat = Number(document.getElementById("report-lat").value);
   const lng = Number(document.getElementById("report-lon").value);
-  const dateVal = document.getElementById("report-date").value;
-  const timeVal = document.getElementById("report-time").value;
+  const dateVal = document.getElementById("report-date").value; // YYYY-MM-DD
+const timeVal = document.getElementById("report-time").value || ""; // HH:MM or HH:MM:SS
+
 
   if (isNaN(lat) || isNaN(lng)) {
     alert("Ungültige Koordinaten.");
@@ -401,8 +402,8 @@ async function saveSelectedReports() {
       latitude: lat,
       longitude: lng,
       territory: entry.bird.territory || "",
-      date_manual: dateVal,
-      time_manual: timeVal
+  field_6525910: dateVal,
+  field_6525920: timeVal
     };
 
     try {
