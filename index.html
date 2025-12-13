@@ -68,10 +68,10 @@
     .submit-btn-ghost { background:#eee; }
 
     .selected-action {
-      background: #2a4d69 !important;
-      color: #fff !important;
-      border-color: #2a4d69 !important;
-      font-weight: 600;
+      background:#2a4d69 !important;
+      color:#fff !important;
+      border-color:#2a4d69 !important;
+      font-weight:600;
     }
 
     .inline-link {
@@ -93,7 +93,7 @@
     td {
       padding:8px 6px;
       border-bottom:1px solid #e6e6e6;
-      font-size:13px;   /* slightly smaller data text */
+      font-size:13px; /* slightly smaller data */
       text-align:center;
     }
 
@@ -122,7 +122,70 @@
 </head>
 
 <body>
-  <!-- REST OF FILE UNCHANGED -->
-  <script src="/app.js"></script>
+
+<header>
+  <div class="header-top-row">
+    <h1>
+      <img src="/favicon.png" class="bird-img">
+      Dipper Finder
+    </h1>
+    <div class="header-buttons">
+      <a href="https://nest-logger.vercel.app" class="round-btn round-btn-primary">Nest Logger</a>
+      <a href="https://wdomi.github.io/dipper_map/" class="round-btn round-btn-primary">Nests Map</a>
+    </div>
+  </div>
+
+  <div class="top-actions">
+    <button id="btn-reset" class="reset-btn">Zurücksetzen</button>
+  </div>
+</header>
+
+<!-- RING FILTERS -->
+<div class="section">
+  <div class="leg-title">Rechtes Bein</div>
+  <div id="right-leg" class="color-grid"></div>
+</div>
+
+<div class="section">
+  <div class="leg-title">Linkes Bein</div>
+  <div id="left-leg" class="color-grid"></div>
+</div>
+
+<!-- ACTION BUTTONS -->
+<div class="section submit-area">
+  <div class="submit-row">
+    <button id="btn-report" class="submit-btn submit-btn-primary">Beobachtung melden</button>
+    <button id="btn-unringed" class="submit-btn submit-btn-ghost">unberingt melden</button>
+    <a href="#" id="lnk-latest" class="inline-link">Letzte Beobachtungen</a>
+  </div>
+</div>
+
+<!-- BIRD LIST -->
+<div class="section">
+  <div style="display:flex; align-items:center; gap:10px; margin:4px 2px 8px;">
+    <h3 style="margin:0;">Alle Vögel</h3>
+    <input
+      id="bird-search"
+      type="text"
+      placeholder="Name oder Ring-ID suchen…"
+      style="flex:1; max-width:260px; padding:6px 10px; border-radius:8px; border:1px solid #ccc; font-size:14px;"
+    />
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name (ID)</th>
+        <th>Sex/ Alter</th>
+        <th>Revier (Dist m)/ beringt</th>
+        <th>R↑/↓ – L↑/↓</th>
+        <th>Aktionen</th>
+      </tr>
+    </thead>
+    <tbody id="birds-body"></tbody>
+  </table>
+</div>
+
+<script src="/app.js"></script>
 </body>
 </html>
