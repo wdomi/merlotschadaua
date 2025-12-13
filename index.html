@@ -61,8 +61,8 @@
 
     .submit-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     .submit-btn {
-      padding:8px 12px; border-radius:999px; border:1px solid #bbb;
-      cursor:pointer; font-size:14px;
+      padding:6px 8px; border-radius:999px; border:1px solid #bbb;
+      cursor:pointer; font-size:11px;
     }
     .submit-btn-primary { background:var(--accent); color:white; border-color:var(--accent); }
     .submit-btn-ghost { background:#eee; }
@@ -83,7 +83,7 @@
     }
 
     table { width:100%; border-collapse:collapse; }
-    th, td { padding:8px 6px; border-bottom:1px solid #e6e6e6; font-size:14px; }
+    th, td { padding:7px 12px; border-bottom:1px solid #e6e6e6; font-size:12px; }
 
     .popup-bg {
       position:fixed; inset:0; background:rgba(0,0,0,.55);
@@ -156,8 +156,9 @@
 <!-- ===================== BIRD LIST ===================== -->
 
 <div class="section">
- <div style="display:flex; align-items:center; gap:12px; margin:4px 2px 8px;">
-  <h3 style="margin:0;">Alle Vögel</h3>
+ <!-- <div style="display:flex; align-items:center; gap:12px; margin:4px 2px 8px;">  -->
+ <div style="display:flex; align-items:center; justify-content:flex-start; gap:12px; margin:4px 2px 8px;">
+ <h3 style="margin:0;">Alle Vögel</h3>
 
   <input
     id="bird-search"
@@ -169,7 +170,7 @@
       padding:6px 10px;
       border-radius:8px;
       border:1px solid #ccc;
-      font-size:14px;
+      font-size:12px;
     "
   />
 </div>
@@ -178,8 +179,8 @@
     <thead>
       <tr>
         <th>Name (ID)</th>
-        <th>Geschl. / Alter</th>
-        <th>Revier (Dist m) / beringt am</th>
+        <th>Sex/ Alter</th>
+        <th>Revier (Dist m)/ beringt</th>
         <th>R↑/↓ – L↑/↓</th>
         <th>Aktionen</th>
       </tr>
