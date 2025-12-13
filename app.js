@@ -1,11 +1,5 @@
 /***************************************************************************
- * Merlotschadaua – FULL app.js 
- * - Original functionality preserved
- * - Offline queue
- * - Latest observations
- * - Normal observation flow
- * - CSV parsing
- * - Map logic
+ * Merlotschadaua – FULL app.js (UNIFIED REPORT FLOW)
  **************************************************************************/
 
 console.log("Merlotschadaua app.js loaded");
@@ -23,9 +17,6 @@ let perBirdSelection = new Map();
 
 let map = null;
 let marker = null;
-
-let manualMap = null;
-let manualMarker = null;
 
 const CSV_URL = "/data/view_birdsCSV_apps.csv";
 const DEFAULT_CENTER = [46.7000, 10.0833];
@@ -112,7 +103,7 @@ window.addEventListener("load", () => {
 function loadCSV() {
   fetch(CSV_URL)
     .then(r => r.text())
-    .then(stripBOM)
+    .then(t => t.replace(/^\uFEFF/, ""))
     .then(parseCSV)
     .then(rows => {
       birds = rows;
@@ -123,10 +114,6 @@ function loadCSV() {
       console.error(err);
       alert("CSV konnte nicht geladen werden.");
     });
-}
-
-function stripBOM(t) {
-  return t.replace(/^\uFEFF/, "");
 }
 
 function parseCSV(text) {
@@ -194,20 +181,6 @@ function toggleColor(side, color, btn) {
 }
 
 // ------------------------------------------------------------------------
-// HELPER
-// ------------------------------------------------------------------------
-
-
-function findBirdByRings({ R_top, R_bottom, L_top, L_bottom }) {
-  return birds.filter(b =>
-    (!R_top || b.R_top === R_top) &&
-    (!R_bottom || b.R_bottom === R_bottom) &&
-    (!L_top || b.L_top === L_top) &&
-    (!L_bottom || b.L_bottom === L_bottom)
-  );
-}
-
-// ------------------------------------------------------------------------
 // FILTER & RENDER TABLE
 // ------------------------------------------------------------------------
 
@@ -221,20 +194,15 @@ function birdMatches(b) {
   return true;
 }
 
-
 function colorPill(c) {
   if (!c) return "";
   const hex = COLOR_PALETTE[c] || "#777";
   const text = c === "white" ? "#000" : "#fff";
-  const label = c.slice(0, 3);   // 👈 ONLY FIRST 3 LETTERS
-  return `<span style="background:${hex};color:${text};padding:2px 4px;border-radius:4px;font-size:11px;">${label}</span>`;
+  return `<span style="background:${hex};color:${text};padding:2px 4px;border-radius:4px;font-size:11px;">${c.slice(0,3)}</span>`;
 }
-
 
 function renderBirds() {
   const body = document.getElementById("birds-body");
-  if (!body) return;
-
   body.innerHTML = "";
 
   birds.filter(birdMatches).forEach(b => {
@@ -281,221 +249,153 @@ function setupButtons() {
     renderBirds();
   };
 
-  document.getElementById("btn-report").onclick = openConfirmationPopup;
-//  document.getElementById("btn-latest").onclick = loadLatest;
+  document.getElementById("btn-report").onclick = openReportPopup;
+  document.getElementById("btn-unringed").onclick = () => {
+    perBirdSelection.clear();
+    perBirdSelection.set("unringed", "sighted");
+    openReportPopup();
+  };
 
-  const latestLink = document.getElementById("lnk-latest");
-if (latestLink) {
-  latestLink.onclick = (e) => {
+  document.getElementById("lnk-latest").onclick = e => {
     e.preventDefault();
     loadLatest();
   };
 }
 
-  const manualLink = document.getElementById("lnk-manual");
-  if (manualLink) manualLink.onclick = openManualPopup;
-
-    // unringed melden
-  const unringedBtn = document.getElementById("btn-unringed");
-  if (unringedBtn) {
-    unringedBtn.onclick = () => {
-      perBirdSelection.clear();
-      perBirdSelection.set("unringed", "sighted");
-      openConfirmationPopup();
-    };
-  }
-}
 // ------------------------------------------------------------------------
-// CONFIRMATION POPUP → MAP POPUP
+// REPORT POPUP + MAP
 // ------------------------------------------------------------------------
 
-function openConfirmationPopup() {
-  const entries = [];
-
-  for (const [bird_id, action] of perBirdSelection.entries()) {
-    let b;
-    if (bird_id === "unringed") {
-      b = { bird_id: "unringed", name: "unberingt", territory: "" };
-    } else {
-      b = birds.find(x => x.bird_id === bird_id);
-    }
-    if (b) entries.push({ bird: structuredClone(b), action });
-  }
-
-  if (entries.length === 0) {
+function openReportPopup() {
+  if (!perBirdSelection.size) {
     alert("Bitte mindestens einen Vogel auswählen.");
     return;
   }
 
-  window._pendingSelections = entries;
-  openReportPopup(entries);
-}
-
-function openReportPopup(entries) {
-  const el = document.getElementById("popup-bird-info");
-
-  if (entries.length === 1) {
-    const b = entries[0].bird;
-    if (b.bird_id === "unringed") el.textContent = "Unberingter Vogel";
-    else el.textContent = `${b.name} (${b.bird_id})`;
-  } else {
-    el.textContent = `${entries.length} Vögel ausgewählt`;
+  const entries = [];
+  for (const [bird_id, action] of perBirdSelection.entries()) {
+    let b = bird_id === "unringed"
+      ? { bird_id: "", name: "unberingt", territory: "" }
+      : birds.find(x => x.bird_id === bird_id);
+    if (b) entries.push({ bird: b, action });
   }
+
+  window._pendingSelections = entries;
+
+  document.getElementById("popup-bird-info").textContent =
+    entries.length === 1
+      ? `${entries[0].bird.name} (${entries[0].bird.bird_id || "unberingt"})`
+      : `${entries.length} Vögel ausgewählt`;
+
+  const now = new Date();
+  document.getElementById("report-date").value = now.toISOString().slice(0,10);
+  document.getElementById("report-time").value = now.toTimeString().slice(0,8);
 
   openPopup("popup-report-bg");
   initMap();
 }
 
-// ------------------------------------------------------------------------
-// MAP POPUP (NORMAL FLOW)
-// ------------------------------------------------------------------------
-
 function initMap() {
   const mapDiv = document.getElementById("map");
   mapDiv.innerHTML = "";
-
   if (map) map.remove();
 
   map = L.map("map").setView(DEFAULT_CENTER, 12);
 
-  L.tileLayer(
-    "https://api.maptiler.com/maps/topo-v4/{z}/{x}/{y}.png?key=hTUZRiAhto38o94bZonV",
-    {
-      maxZoom: 20,
-      tileSize: 512,
-      zoomOffset: -1,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
-        '&copy; <a href="https://www.maptiler.com/">MapTiler</a>'
-    }
-  ).addTo(map);
+  L.tileLayer("https://api.maptiler.com/maps/topo-v4/{z}/{x}/{y}.png?key=hTUZRiAhto38o94bZonV", {
+    maxZoom: 20,
+    tileSize: 512,
+    zoomOffset: -1
+  }).addTo(map);
 
   marker = L.marker(DEFAULT_CENTER, { draggable: true }).addTo(map);
-
   marker.on("dragend", () => {
     const p = marker.getLatLng();
     updateCoords(p.lat, p.lng);
   });
 
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        const { latitude, longitude } = pos.coords;
-        map.setView([latitude, longitude], 14);
-        marker.setLatLng([latitude, longitude]);
-        updateCoords(latitude, longitude);
-      },
-      () => updateCoords(DEFAULT_CENTER[0], DEFAULT_CENTER[1])
-    );
+  updateCoords(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
+
+  const latEl = document.getElementById("report-lat");
+  const lonEl = document.getElementById("report-lon");
+
+  function applyTypedCoords() {
+    const lat = Number(latEl.value);
+    const lon = Number(lonEl.value);
+    if (!isNaN(lat) && !isNaN(lon)) {
+      marker.setLatLng([lat, lon]);
+      map.setView([lat, lon]);
+    }
   }
+
+  latEl.onchange = applyTypedCoords;
+  lonEl.onchange = applyTypedCoords;
+
+  document.getElementById("btn-find-me").onclick = () => {
+    navigator.geolocation.getCurrentPosition(pos => {
+      marker.setLatLng([pos.coords.latitude, pos.coords.longitude]);
+      map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+      updateCoords(pos.coords.latitude, pos.coords.longitude);
+    });
+  };
 
   setTimeout(() => map.invalidateSize(), 200);
-
-  const findBtn = document.getElementById("btn-find-me");
-  if (findBtn) {
-    findBtn.onclick = () => {
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const { latitude, longitude } = pos.coords;
-          map.setView([latitude, longitude], 15);
-          marker.setLatLng([latitude, longitude]);
-          updateCoords(latitude, longitude);
-        },
-        () => alert("GPS konnte nicht abgerufen werden.")
-      );
-    };
-  }
-
-  const saveBtn = document.getElementById("btn-save-report");
-  if (saveBtn) saveBtn.onclick = saveSelectedReports;
 }
 
 function updateCoords(lat, lng) {
-  const el = document.getElementById("coords-display");
-  if (!el) return;
-  el.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+  document.getElementById("report-lat").value = lat.toFixed(10);
+  document.getElementById("report-lon").value = lng.toFixed(10);
 }
 
 // ------------------------------------------------------------------------
-// SAVE REPORTS → SERVER (NORMAL FLOW)
+// SAVE REPORTS
 // ------------------------------------------------------------------------
 
 async function saveSelectedReports() {
   const entries = window._pendingSelections;
-  if (!entries) return;
+  const lat = Number(document.getElementById("report-lat").value);
+  const lng = Number(document.getElementById("report-lon").value);
 
-  const { lat, lng } = marker.getLatLng();
-  const lat10 = Number(lat.toFixed(10));
-  const lng10 = Number(lng.toFixed(10));
-
-  let successCount = 0;
-  let offlineCount = 0;
+  const dateVal = document.getElementById("report-date").value;
+  const timeVal = document.getElementById("report-time").value;
 
   for (const entry of entries) {
-    const b = entry.bird;
-    const actionKey = entry.action === "maybe" ? "maybe" : "sighted";
-
     const payload = {
-      bird_name: b.name || "",
-      bird_id: b.bird_id === "unringed" ? "" : b.bird_id,
-      action: ACTION_IDS[actionKey],
-      latitude: lat10,
-      longitude: lng10,
-      territory: b.territory || ""
+      bird_name: entry.bird.name,
+      bird_id: entry.bird.bird_id,
+      action: ACTION_IDS[entry.action],
+      latitude: lat,
+      longitude: lng,
+      territory: entry.bird.territory || "",
+      date_manual: dateVal,
+      time_manual: timeVal
     };
 
     if (!navigator.onLine) {
       addToOfflineQueue(payload);
-      offlineCount++;
       continue;
     }
 
-    try {
-      await sendToServer(payload);
-      successCount++;
-    } catch (err) {
-      console.error("Save error:", err);
-    }
-  }
-
-  if (offlineCount && !successCount) {
-    alert(
-      offlineCount === 1
-        ? "1 Beobachtung wurde lokal gespeichert und wird abgeschickt, sobald wieder Signal vorhanden ist."
-        : `${offlineCount} Beobachtungen wurden lokal gespeichert und werden abgeschickt, sobald wieder Signal vorhanden ist.`
-    );
-  } else if (offlineCount && successCount) {
-    alert(`${successCount} Beobachtungen wurden gesendet, ${offlineCount} weitere wurden lokal gespeichert (offline).`);
-  } else {
-    alert(`Gespeichert: ${successCount} Beobachtungen`);
+    await sendToServer(payload);
   }
 
   closePopup("popup-report-bg");
   perBirdSelection.clear();
   renderBirds();
+  alert("Gespeichert.");
 }
 
 // ------------------------------------------------------------------------
-// SERVER COMMUNICATION
+// SERVER
 // ------------------------------------------------------------------------
 
 async function sendToServer(payload) {
-  function fixNumber(n) {
-    if (n === null || n === undefined) return null;
-    const x = Number(n);
-    return isNaN(x) ? null : x;
-  }
-  payload.latitude = fixNumber(payload.latitude);
-  payload.longitude = fixNumber(payload.longitude);
-
   const res = await fetch("/api/submit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
-
-  if (!res.ok) throw new Error("Server not OK");
-  return res.json();
+  if (!res.ok) throw new Error("Server error");
 }
 
 // ------------------------------------------------------------------------
@@ -504,78 +404,30 @@ async function sendToServer(payload) {
 
 async function loadLatest() {
   openPopup("popup-latest-bg");
-
   const box = document.getElementById("latest-list");
-  if (!box) return;
   box.textContent = "Lade...";
 
   try {
-    const res = await fetch("/api/submit", {
+    const r = await fetch("/api/submit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "list" })
     });
 
-    if (!res.ok) {
-      const t = await res.text();
-      throw new Error("HTTP error: " + t);
-    }
-
-    const data = await res.json();
-
-    // ✅ ACCEPT MULTIPLE BACKEND FORMATS
-    let rows;
-    if (Array.isArray(data)) {
-      rows = data;
-    } else if (Array.isArray(data.results)) {
-      rows = data.results;
-    } else if (Array.isArray(data.rows)) {
-      rows = data.rows;
-    } else {
-      console.error("Unexpected response:", data);
-      throw new Error("Invalid response format");
-    }
-
+    const rows = await r.json();
     box.innerHTML = "";
-
-    if (rows.length === 0) {
-      box.textContent = "Keine Beobachtungen vorhanden.";
-      return;
-    }
 
     rows.forEach(row => {
       const div = document.createElement("div");
-      div.innerHTML = `
-        <strong>${row.bird_name || row.field_6258635 || "?"}</strong>
-        – ${row.action || row.field_6258637}<br>
-        ${row.date || row.created_on || ""}<br>
-        (${row.latitude || row.field_6258639},
-         ${row.longitude || row.field_6258640})<br>
-      `;
-
-      const del = document.createElement("button");
-      del.textContent = "Delete";
-      del.onclick = async () => {
-        await fetch("/api/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "set_deleted", id: row.id, deleted: true })
-        });
-        loadLatest();
-      };
-
-      div.appendChild(del);
+      div.innerHTML = `<strong>${row.bird_name}</strong> – ${row.action}<br>
+        (${row.latitude}, ${row.longitude})`;
       box.appendChild(div);
     });
 
-  } catch (err) {
-    console.error("loadLatest failed:", err);
+  } catch {
     box.textContent = "Fehler beim Laden.";
   }
 }
-
-
-
 
 // ------------------------------------------------------------------------
 // POPUPS
@@ -586,263 +438,4 @@ function openPopup(id) {
 }
 function closePopup(id) {
   document.getElementById(id).style.display = "none";
-}
-
-// ========================================================================
-// NEW: MANUAL SINGLE-BIRD ENTRY
-// ========================================================================
-
-function uniqNonEmpty(arr) {
-  return [...new Set(arr.map(x => (x || "").trim()).filter(Boolean))];
-}
-
-function fillSelectOptions(selectEl, values) {
-  if (!selectEl) return;
-  selectEl.innerHTML = "";
-
-  const empty = document.createElement("option");
-  empty.value = "";
-  empty.textContent = "—";
-  selectEl.appendChild(empty);
-
-  values.forEach(v => {
-    const opt = document.createElement("option");
-    opt.value = v;
-    opt.textContent = v;
-    selectEl.appendChild(opt);
-  });
-}
-
-function normalizeTimeToHMS(t) {
-  if (!t) return "";
-  if (/^\d{2}:\d{2}$/.test(t)) return `${t}:00`;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(t)) return t;
-  return t;
-}
-
-function setManualCoords(lat, lon, { moveMap = true } = {}) {
-  const lat10 = Number(Number(lat).toFixed(10));
-  const lon10 = Number(Number(lon).toFixed(10));
-
-  const latEl = document.getElementById("manual-lat");
-  const lonEl = document.getElementById("manual-lon");
-  const disp = document.getElementById("manual-coords-display");
-
-  if (latEl) latEl.value = String(lat10);
-  if (lonEl) lonEl.value = String(lon10);
-  if (disp) disp.textContent = `Lat: ${lat10.toFixed(6)}, Lng: ${lon10.toFixed(6)}`;
-
-  if (manualMarker) manualMarker.setLatLng([lat10, lon10]);
-  if (manualMap && moveMap) manualMap.setView([lat10, lon10], Math.max(manualMap.getZoom(), 14));
-}
-
-function initManualMap() {
-  const mapDiv = document.getElementById("map-manual");
-  if (!mapDiv) return;
-
-  mapDiv.innerHTML = "";
-  if (manualMap) manualMap.remove();
-
-  manualMap = L.map("map-manual").setView(DEFAULT_CENTER, 12);
-
-  L.tileLayer(
-    "https://api.maptiler.com/maps/topo-v4/{z}/{x}/{y}.png?key=hTUZRiAhto38o94bZonV",
-    {
-      maxZoom: 20,
-      tileSize: 512,
-      zoomOffset: -1,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
-        '&copy; <a href="https://www.maptiler.com/">MapTiler</a>'
-    }
-  ).addTo(manualMap);
-
-  manualMarker = L.marker(DEFAULT_CENTER, { draggable: true }).addTo(manualMap);
-
-  manualMarker.on("dragend", () => {
-    const p = manualMarker.getLatLng();
-    setManualCoords(p.lat, p.lng, { moveMap: false });
-  });
-
-  setManualCoords(DEFAULT_CENTER[0], DEFAULT_CENTER[1], { moveMap: false });
-
-  const latEl = document.getElementById("manual-lat");
-  const lonEl = document.getElementById("manual-lon");
-
-  function tryApplyTypedCoords() {
-    const lat = Number(latEl.value);
-    const lon = Number(lonEl.value);
-    if (isNaN(lat) || isNaN(lon)) return;
-    setManualCoords(lat, lon, { moveMap: true });
-  }
-
-  if (latEl) latEl.onchange = tryApplyTypedCoords;
-  if (lonEl) lonEl.onchange = tryApplyTypedCoords;
-
-  const findBtn = document.getElementById("btn-manual-find-me");
-  if (findBtn) {
-    findBtn.onclick = () => {
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const { latitude, longitude } = pos.coords;
-          setManualCoords(latitude, longitude, { moveMap: true });
-        },
-        () => alert("GPS konnte nicht abgerufen werden.")
-      );
-    };
-  }
-
-  setTimeout(() => manualMap.invalidateSize(), 200);
-}
-
-function openManualPopup() {
-  if (!birds.length) {
-    alert("CSV wird noch geladen – bitte kurz warten.");
-    return;
-  }
-
-  const birdSel = document.getElementById("manual-bird");
-  if (!birdSel) return;
-
-  birdSel.innerHTML = "";
-  birds.forEach(b => {
-    const opt = document.createElement("option");
-    opt.value = b.bird_id;
-    opt.textContent = `${b.name} (${b.bird_id})`;
-    birdSel.appendChild(opt);
-  });
-
-  fillSelectOptions(document.getElementById("manual-r-top"), uniqNonEmpty(birds.map(b => b.R_top)));
-  fillSelectOptions(document.getElementById("manual-r-bottom"), uniqNonEmpty(birds.map(b => b.R_bottom)));
-  fillSelectOptions(document.getElementById("manual-l-top"), uniqNonEmpty(birds.map(b => b.L_top)));
-  fillSelectOptions(document.getElementById("manual-l-bottom"), uniqNonEmpty(birds.map(b => b.L_bottom)));
-
-  // --- reverse lookup: rings → bird ---
-const rt = document.getElementById("manual-r-top");
-const rb = document.getElementById("manual-r-bottom");
-const lt = document.getElementById("manual-l-top");
-const lb = document.getElementById("manual-l-bottom");
-
-function trySelectBirdFromRings() {
-  const matches = findBirdByRings({
-    R_top: rt.value,
-    R_bottom: rb.value,
-    L_top: lt.value,
-    L_bottom: lb.value
-  });
-
-  if (matches.length === 1) {
-    birdSel.value = matches[0].bird_id;
-  }
-}
-
-[rt, rb, lt, lb].forEach(el => {
-  if (el) el.onchange = trySelectBirdFromRings;
-});
-
-  
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-
-  const dateEl = document.getElementById("manual-date");
-  if (dateEl) dateEl.value = `${yyyy}-${mm}-${dd}`;
-
-  birdSel.onchange = () => {
-    const b = birds.find(x => x.bird_id === birdSel.value);
-    if (!b) return;
-    const rt = document.getElementById("manual-r-top");
-    const rb = document.getElementById("manual-r-bottom");
-    const lt = document.getElementById("manual-l-top");
-    const lb = document.getElementById("manual-l-bottom");
-    if (rt) rt.value = b.R_top || "";
-    if (rb) rb.value = b.R_bottom || "";
-    if (lt) lt.value = b.L_top || "";
-    if (lb) lb.value = b.L_bottom || "";
-  };
-  birdSel.onchange();
-
-  openPopup("popup-manual-bg");
-  initManualMap();
-
-  const saveBtn = document.getElementById("btn-manual-save");
-  if (saveBtn) saveBtn.onclick = saveManualReport;
-}
-
-async function saveManualReport() {
-  const dateVal = document.getElementById("manual-date")?.value || "";
-  const timeVal = normalizeTimeToHMS(document.getElementById("manual-time")?.value || "");
-
-  if (!dateVal) {
-    alert("Bitte Datum eingeben.");
-    return;
-  }
-
-  const birdId = document.getElementById("manual-bird")?.value || "";
-  const b = birds.find(x => x.bird_id === birdId);
-  if (!b) {
-    alert("Bitte Vogel auswählen.");
-    return;
-  }
-
-  const typ = Number(document.getElementById("manual-typ")?.value || ACTION_IDS.sighted);
-
-  const rTop = document.getElementById("manual-r-top")?.value || "";
-  const rBottom = document.getElementById("manual-r-bottom")?.value || "";
-  const lTop = document.getElementById("manual-l-top")?.value || "";
-  const lBottom = document.getElementById("manual-l-bottom")?.value || "";
-
-  let lat, lng;
-  if (manualMarker) {
-    const p = manualMarker.getLatLng();
-    lat = p.lat;
-    lng = p.lng;
-  } else {
-    lat = Number(document.getElementById("manual-lat")?.value);
-    lng = Number(document.getElementById("manual-lon")?.value);
-  }
-
-  const lat10 = Number(Number(lat).toFixed(10));
-  const lng10 = Number(Number(lng).toFixed(10));
-
-  if (isNaN(lat10) || isNaN(lng10)) {
-    alert("Bitte gültige Koordinaten (lat/lon) eingeben.");
-    return;
-  }
-
-  const payload = {
-    bird_name: b.name || "",
-    bird_id: b.bird_id || "",
-    action: typ,
-    latitude: lat10,
-    longitude: lng10,
-    territory: b.territory || "",
-
-    // manual fields (new)
-    date_manual: dateVal,
-    time_manual: timeVal,
-
-    // ring fields (optional extra, harmless if backend ignores)
-    R_top: rTop,
-    R_bottom: rBottom,
-    L_top: lTop,
-    L_bottom: lBottom
-  };
-
-  if (!navigator.onLine) {
-    addToOfflineQueue(payload);
-    alert("Beobachtung wurde lokal gespeichert und wird abgeschickt, sobald wieder Signal vorhanden ist.");
-    closePopup("popup-manual-bg");
-    return;
-  }
-
-  try {
-    await sendToServer(payload);
-    alert("Gespeichert.");
-    closePopup("popup-manual-bg");
-  } catch (err) {
-    console.error("Manual save error:", err);
-    alert("Fehler beim Speichern.");
-  }
 }
