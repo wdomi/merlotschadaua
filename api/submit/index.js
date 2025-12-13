@@ -107,13 +107,15 @@ return res.status(200).json(
   const longitude = safeNum(body.longitude);
 
   const baserowRow = {
-    field_6258638: date,
     field_6258635: bird_name,
     field_6258636: bird_id,
     field_6258637: action,
     field_6258639: latitude,
     field_6258640: longitude,
     field_6258643: territory,
+    // ✅ new manual fields
+  field_6525910: body.field_6525910 || null, // date_manual
+  field_6525920: body.field_6525920 || null, // time_manual
     field_DELETED: false        // 👈 NEW, safe default
   };
 
