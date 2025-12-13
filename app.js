@@ -374,17 +374,30 @@ function updateCoords(lat, lng) {
 
 async function saveSelectedReports() {
   const entries = window._pendingSelections;
+  if (!entries || !entries.length) return;
+
   const lat = Number(document.getElementById("report-lat").value);
   const lng = Number(document.getElementById("report-lon").value);
-
   const dateVal = document.getElementById("report-date").value;
   const timeVal = document.getElementById("report-time").value;
 
+  if (isNaN(lat) || isNaN(lng)) {
+    alert("Ungültige Koordinaten.");
+    return;
+  }
+
   for (const entry of entries) {
+    const actionId = ACTION_IDS[entry.action];
+
+    if (!actionId) {
+      alert("Bitte für jeden Vogel 'beobachtet' oder 'unsicher' auswählen.");
+      return;
+    }
+
     const payload = {
-      bird_name: entry.bird.name,
-      bird_id: entry.bird.bird_id,
-      action: ACTION_IDS[entry.action],
+      bird_name: entry.bird.name || "",
+      bird_id: entry.bird.bird_id || "",
+      action: actionId,
       latitude: lat,
       longitude: lng,
       territory: entry.bird.territory || "",
@@ -392,12 +405,17 @@ async function saveSelectedReports() {
       time_manual: timeVal
     };
 
-    if (!navigator.onLine) {
-      addToOfflineQueue(payload);
-      continue;
+    try {
+      if (!navigator.onLine) {
+        addToOfflineQueue(payload);
+      } else {
+        await sendToServer(payload);
+      }
+    } catch (err) {
+      console.error("Save failed:", err);
+      alert("Fehler beim Speichern.");
+      return;
     }
-
-    await sendToServer(payload);
   }
 
   closePopup("popup-report-bg");
