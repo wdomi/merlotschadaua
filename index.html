@@ -89,17 +89,12 @@
       font-size:12px; 
       vertical-align: middle;
     }
-   
 
-/* allow wrapping */
-.wrap {
-  white-space: normal;
+    td * {
+  white-space: inherit;
 }
+    
 
-/* force single line */
-.nowrap {
-  white-space: nowrap;
-}
 
 
     .popup-bg {
@@ -195,11 +190,11 @@
   <table>
     <thead>
       <tr>
-        <th class="wrap">Name (ID)</th>
-        <th class="nowrap">Sex/Alter</th>
-        <th class="wrap">Revier (Dist m)/<br>beringt</th>
-        <th class="wrap">R↑/↓<br>L↑/↓</th>
-        <th class="wrap">Aktionen</th>
+        <th>Name (ID)</th>
+        <th>Sex/Alter</th>
+        <th>Revier (Dist m)/<br>beringt</th>
+        <th>R↑/↓<br>L↑/↓</th>
+        <th>Aktionen</th>
       </tr>
     </thead>
     <tbody id="birds-body"></tbody>
