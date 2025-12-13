@@ -356,7 +356,11 @@ function initMap() {
     });
   };
 
-  setTimeout(() => map.invalidateSize(), 200);
+  const saveBtn = document.getElementById("btn-save-report");
+if (saveBtn) saveBtn.onclick = saveSelectedReports;
+
+    setTimeout(() => map.invalidateSize(), 200);
+
 }
 
 function updateCoords(lat, lng) {
