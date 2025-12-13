@@ -203,6 +203,8 @@ function colorPill(c) {
 
 function renderBirds() {
   const body = document.getElementById("birds-body");
+  if (!body) return;
+
   body.innerHTML = "";
 
   birds.filter(birdMatches).forEach(b => {
@@ -215,26 +217,41 @@ function renderBirds() {
       <td>${b.territory} (${b.dist}) / ${b.banded_on}</td>
       <td>${colorPill(b.R_top)} / ${colorPill(b.R_bottom)} – ${colorPill(b.L_top)} / ${colorPill(b.L_bottom)}</td>
       <td>
-        <button class="submit-btn submit-btn-ghost ${act==="sighted"?"selected-action":""}"
-          data-id="${b.bird_id}" data-action="sighted">beobachtet</button>
-        <button class="submit-btn submit-btn-ghost ${act==="maybe"?"selected-action":""}"
-          data-id="${b.bird_id}" data-action="maybe">unsicher</button>
+        <button
+          class="submit-btn submit-btn-ghost action-btn ${act==="sighted" ? "selected-action" : ""}"
+          data-id="${b.bird_id}"
+          data-action="sighted">
+          beobachtet
+        </button>
+        <button
+          class="submit-btn submit-btn-ghost action-btn ${act==="maybe" ? "selected-action" : ""}"
+          data-id="${b.bird_id}"
+          data-action="maybe">
+          unsicher
+        </button>
       </td>
     `;
     body.appendChild(tr);
   });
 
-  document.querySelectorAll("button[data-id]").forEach(btn => {
+  // IMPORTANT: rebind click handlers every render
+  document.querySelectorAll(".action-btn").forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
       const action = btn.dataset.action;
-      const cur = perBirdSelection.get(id);
-      if (cur === action) perBirdSelection.delete(id);
-      else perBirdSelection.set(id, action);
-      renderBirds();
+      const current = perBirdSelection.get(id);
+
+      if (current === action) {
+        perBirdSelection.delete(id); // toggle off
+      } else {
+        perBirdSelection.set(id, action); // set / switch
+      }
+
+      renderBirds(); // re-render to update visuals
     };
   });
 }
+
 
 // ------------------------------------------------------------------------
 // BUTTONS
