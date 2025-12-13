@@ -18,6 +18,9 @@ let perBirdSelection = new Map();
 let map = null;
 let marker = null;
 
+// 🔍 NEW: bird name / ID search
+let birdSearchQuery = "";
+
 const CSV_URL = "/data/view_birdsCSV_apps.csv";
 const DEFAULT_CENTER = [46.7000, 10.0833];
 const OFFLINE_QUEUE_KEY = "merlotschadaua_offline_queue";
@@ -185,14 +188,22 @@ function toggleColor(side, color, btn) {
 // ------------------------------------------------------------------------
 
 function birdMatches(b) {
+  // ring color filtering (existing logic)
   const R = [b.R_top, b.R_bottom].filter(Boolean);
   const L = [b.L_top, b.L_bottom].filter(Boolean);
 
   if (!selectedRight.every(c => R.includes(c))) return false;
   if (!selectedLeft.every(c => L.includes(c))) return false;
 
+  // 🔍 text search (NEW)
+  if (birdSearchQuery) {
+    const haystack = `${b.name} ${b.bird_id}`.toLowerCase();
+    if (!haystack.includes(birdSearchQuery)) return false;
+  }
+
   return true;
 }
+
 
 function colorPill(c) {
   if (!c) return "";
@@ -265,7 +276,13 @@ function setupButtons() {
     document.querySelectorAll(".color-button").forEach(b => b.classList.remove("selected"));
     renderBirds();
   };
-
+const searchEl = document.getElementById("bird-search");
+if (searchEl) {
+  searchEl.oninput = () => {
+    birdSearchQuery = searchEl.value.trim().toLowerCase();
+    renderBirds();
+  };
+}
   document.getElementById("btn-report").onclick = openReportPopup;
   document.getElementById("btn-unringed").onclick = () => {
     perBirdSelection.clear();
