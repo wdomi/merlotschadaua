@@ -299,10 +299,28 @@ function openReportPopup() {
 
   window._pendingSelections = entries;
 
-  document.getElementById("popup-bird-info").textContent =
-    entries.length === 1
-      ? `${entries[0].bird.name} (${entries[0].bird.bird_id || "unberingt"})`
-      : `${entries.length} Vögel ausgewählt`;
+const infoEl = document.getElementById("popup-bird-info");
+
+if (entries.length === 1) {
+  const b = entries[0].bird;
+  infoEl.textContent =
+    b.bird_id
+      ? `${b.name} (${b.bird_id})`
+      : "Unberingter Vogel";
+} else {
+  const names = entries.map(e => {
+    const b = e.bird;
+    return b.bird_id ? `${b.name} (${b.bird_id})` : "Unberingt";
+  });
+
+  infoEl.innerHTML = `
+    <strong>${entries.length} Vögel ausgewählt:</strong>
+    <ul style="margin:6px 0 0 16px; padding:0;">
+      ${names.map(n => `<li>${n}</li>`).join("")}
+    </ul>
+  `;
+}
+
 
   const now = new Date();
   document.getElementById("report-date").value = now.toISOString().slice(0,10);
