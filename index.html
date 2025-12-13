@@ -45,8 +45,8 @@
     .reset-btn { padding:6px 12px; border-radius:999px; border:1px solid #bbb; background:#eee; cursor:pointer; }
 
     .section {
-      background:white; border-radius:8px; padding:6px;
-      box-shadow:0 1px 4px rgba(0,0,0,0.06); margin:6px 0;
+      background:white; border-radius:10px; padding:8px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.06); margin:8px 0;
     }
 
     .leg-title { font-weight:600; margin:4px 4px 6px; font-size:14px; }
@@ -68,12 +68,13 @@
     .submit-btn-ghost { background:#eee; }
 
     .selected-action {
-      background:#2a4d69 !important;
-      color:#fff !important;
-      border-color:#2a4d69 !important;
-      font-weight:600;
-    }
+  background: #2a4d69 !important;   /* same as accent */
+  color: #fff !important;
+  border-color: #2a4d69 !important;
+  font-weight: 600;
+}
 
+    
     .inline-link {
       font-size:13px;
       color:var(--accent);
@@ -82,20 +83,7 @@
     }
 
     table { width:100%; border-collapse:collapse; }
-
-    th {
-      padding:8px 6px;
-      border-bottom:1px solid #e6e6e6;
-      font-size:14px;
-      text-align:center;
-    }
-
-    td {
-      padding:8px 6px;
-      border-bottom:1px solid #e6e6e6;
-      font-size:13px; /* slightly smaller data */
-      text-align:center;
-    }
+    th, td { padding:8px 6px; border-bottom:1px solid #e6e6e6; font-size:14px; }
 
     .popup-bg {
       position:fixed; inset:0; background:rgba(0,0,0,.55);
@@ -140,7 +128,8 @@
   </div>
 </header>
 
-<!-- RING FILTERS -->
+<!-- ===================== RING FILTERS ===================== -->
+
 <div class="section">
   <div class="leg-title">Rechtes Bein</div>
   <div id="right-leg" class="color-grid"></div>
@@ -151,26 +140,39 @@
   <div id="left-leg" class="color-grid"></div>
 </div>
 
-<!-- ACTION BUTTONS -->
+<!-- ===================== ACTION BUTTONS ===================== -->
+
 <div class="section submit-area">
   <div class="submit-row">
     <button id="btn-report" class="submit-btn submit-btn-primary">Beobachtung melden</button>
     <button id="btn-unringed" class="submit-btn submit-btn-ghost">unberingt melden</button>
-    <a href="#" id="lnk-latest" class="inline-link">Letzte Beobachtungen</a>
+
+    <a href="#" id="lnk-latest" class="inline-link">
+      Letzte Beobachtungen
+    </a>
   </div>
 </div>
 
-<!-- BIRD LIST -->
+<!-- ===================== BIRD LIST ===================== -->
+
 <div class="section">
-  <div style="display:flex; align-items:center; gap:10px; margin:4px 2px 8px;">
-    <h3 style="margin:0;">Alle Vögel</h3>
-    <input
-      id="bird-search"
-      type="text"
-      placeholder="Name oder Ring-ID suchen…"
-      style="flex:1; max-width:260px; padding:6px 10px; border-radius:8px; border:1px solid #ccc; font-size:14px;"
-    />
-  </div>
+ <div style="display:flex; align-items:center; gap:12px; margin:4px 2px 8px;">
+  <h3 style="margin:0;">Alle Vögel</h3>
+
+  <input
+    id="bird-search"
+    type="text"
+    placeholder="Name oder Ring-ID suchen…"
+    style="
+      flex:1;
+      max-width:260px;
+      padding:6px 10px;
+      border-radius:8px;
+      border:1px solid #ccc;
+      font-size:14px;
+    "
+  />
+</div>
 
   <table>
     <thead>
@@ -184,6 +186,43 @@
     </thead>
     <tbody id="birds-body"></tbody>
   </table>
+</div>
+
+<!-- ===================== REPORT POPUP ===================== -->
+
+<div id="popup-report-bg" class="popup-bg">
+  <div class="popup">
+    <h3>Beobachtung melden</h3>
+    <p id="popup-bird-info"></p>
+
+    <div class="field-row">
+      <input type="date" id="report-date">
+      <input type="time" id="report-time" step="1">
+    </div>
+
+    <div id="map"></div>
+
+    <div class="field-row">
+      <input type="number" id="report-lat" step="0.0000000001" placeholder="Latitude">
+      <input type="number" id="report-lon" step="0.0000000001" placeholder="Longitude">
+    </div>
+
+    <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+      <button id="btn-find-me" class="submit-btn submit-btn-ghost">Finde mich</button>
+      <button id="btn-save-report" class="submit-btn submit-btn-primary">Speichern</button>
+      <button class="submit-btn submit-btn-ghost" onclick="closePopup('popup-report-bg')">Schliessen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== LATEST OBSERVATIONS POPUP ===================== -->
+
+<div id="popup-latest-bg" class="popup-bg">
+  <div class="popup">
+    <h3>Letzte Beobachtungen</h3>
+    <button class="submit-btn submit-btn-ghost" onclick="closePopup('popup-latest-bg')">Schliessen</button>
+    <div id="latest-list">Lade...</div>
+  </div>
 </div>
 
 <script src="/app.js"></script>
