@@ -434,8 +434,15 @@ async function sendToServer(payload) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
-  if (!res.ok) throw new Error("Server error");
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt);
+  }
+
+  return res.json();
 }
+
 
 // ------------------------------------------------------------------------
 // LATEST OBSERVATIONS
