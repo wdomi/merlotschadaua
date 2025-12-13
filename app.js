@@ -224,8 +224,8 @@ function renderBirds() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${b.name}<div class="tag">${b.bird_id}</div></td>
-      <td>${b.sex} ${b.age}</td>
-      <td>${b.territory}_(${b.dist}) ${b.banded_on}</td>
+      <td>${b.sex}<br>${b.age}</td>
+      <td>${b.territory} (${b.dist})<br>${b.banded_on}</td>
       <td>${colorPill(b.R_top)}/${colorPill(b.R_bottom)} ${colorPill(b.L_top)}/${colorPill(b.L_bottom)}</td>
       <td>
         <button
