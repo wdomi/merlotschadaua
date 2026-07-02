@@ -503,29 +503,60 @@ function populateLatestDropdown() {
   }
 }
 
+// ⚠️ RENDERING OBSERVATION BLOBS - CORRECTED
 function renderLatestMap() {
   if (!latestLayer || !latestMap) return;
+
   latestLayer.clearLayers();
+
   const now = Date.now();
   let visible = [];
+
+  // Collect visible observations
   latestData.forEach(r => {
-    if (!r.latitude || !r.longitude || !r.date) return;
-    if (latestBirdFilter && r.bird_id !== latestBirdFilter) return;
+    // ✅ FIX: Use 'lat' and 'lng' if that's what Supabase returns, 
+    // or map them from your specific field names (e.g., r.latitude, r.longitude)
+    // Assuming your Supabase view returns 'latitude' and 'longitude' based on your PHP code context
+    const lat = r.latitude; 
+    const lon = r.longitude;
+    
+    if (!lat || !lon || !r.date) return;
+    
+    // ✅ FIX: Filter by 'ring_number' instead of 'bird_id' if that's your ID field
+    const birdId = r.ring_number || r.bird_id || ""; 
+    if (latestBirdFilter && birdId !== latestBirdFilter) return;
+
     const daysOld = (now - new Date(r.date)) / (1000 * 60 * 60 * 24);
     if (daysOld > latestMaxDays) return;
+
     visible.push(r);
   });
+
   if (!visible.length) return;
+
+  // Sort newest first
   visible.sort((a, b) => new Date(b.date) - new Date(a.date));
   const mostRecent = visible[0];
+
   visible.forEach(r => {
     const lat = Number(r.latitude);
     const lon = Number(r.longitude);
     if (isNaN(lat) || isNaN(lon)) return;
+
     const daysOld = (now - new Date(r.date)) / (1000 * 60 * 60 * 24);
     const opacity = Math.max(0.2, 1 - daysOld / latestMaxDays);
-    const color = r.action === "sighted" ? "#3b82f6" : r.action === "maybe" ? "#f59e0b" : "#999";
+
+    const color =
+      r.action === 4519311 ? "#3b82f6" :
+      r.action === 4519312 ? "#f59e0b" :
+      "#999";
+
     const isNewest = r === mostRecent;
+    
+    // ✅ FIX: Ensure we grab the correct name field
+    const displayName = r.name || r.bird_name || "Unknown";
+    const displayId = r.ring_number || r.bird_id || "—";
+
     const marker = L.circleMarker([lat, lon], {
       radius: isNewest ? 14 : 10,
       fillColor: color,
@@ -533,15 +564,33 @@ function renderLatestMap() {
       color: isNewest ? "#ffffff" : "transparent",
       weight: isNewest ? 3 : 0
     })
-    .bindPopup(`<div><strong>${r.bird_name}</strong> (${r.bird_id || "—"})<br>${r.date}<br><span style="font-size:11px;color:#c33;cursor:pointer;text-decoration:underline;" onclick="deleteObservation(${r.id})">löschen</span></div>`)
+    .bindPopup(`
+      <div>
+        <strong>${displayName}</strong> (${displayId})<br>
+        ${r.date}<br>
+        <span
+          style="font-size:11px;color:#c33;cursor:pointer;text-decoration:underline;"
+          onclick="deleteObservation(${r.id})">
+          löschen
+        </span>
+      </div>
+    `)
     .addTo(latestLayer);
-    if (isNewest) { marker.openPopup(); marker.bringToFront(); }
+
+    if (isNewest) {
+      marker.openPopup();
+      marker.bringToFront();
+    }
   });
+
+  // Center on newest safely
   const newestLat = Number(mostRecent.latitude);
   const newestLon = Number(mostRecent.longitude);
-  if (!isNaN(newestLat) && !isNaN(newestLon)) latestMap.setView([newestLat, newestLon], 17);
-}
 
+  if (!isNaN(newestLat) && !isNaN(newestLon)) {
+    latestMap.setView([newestLat, newestLon], 17);
+  }
+}
 async function deleteObservation(id) {
   const ok = confirm("Möchtest du wirklich die Beobachtung löschen?");
   if (!ok) return;
