@@ -157,7 +157,7 @@ function birdMatches(b) {
   if (!selectedLeft.every(c => L.includes(c))) return false;
   if (!selectedRight.every(c => R.includes(c))) return false;
   if (birdSearchQuery) {
-    const haystack = `${b.name} ${b.bird_id}`.toLowerCase();
+    const haystack = `${b.name} ${b.ring_number}`.toLowerCase();
     if (!haystack.includes(birdSearchQuery)) return false;
   }
   return true;
@@ -187,7 +187,7 @@ function renderBirds() {
   body.innerHTML = "";
 
   birds.filter(birdMatches).forEach(b => {
-    const currentAction = perBirdSelection.get(b.bird_id) || "";
+    const currentAction = perBirdSelection.get(b.ring_number) || "";
     const tr = document.createElement("tr");
     
     // Determine if we should add the dark class immediately
@@ -197,7 +197,7 @@ function renderBirds() {
       <!-- Name Column: Constrained width -->
       <td style="vertical-align: middle; text-align: left; max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px;">
         <div style="font-weight:600; font-size: 12px; line-height: 1.2;">${b.name || ""}</div>
-        <div style="font-size: 10px; color:#666; line-height: 1.2;">${b.bird_id || ""}</div>
+        <div style="font-size: 10px; color:#666; line-height: 1.2;">${b.ring_number || ""}</div>
       </td>
       
       <td style="vertical-align: middle; text-align: left;">
@@ -211,7 +211,7 @@ function renderBirds() {
       </td>
       <!-- Action Column: Very narrow, small font -->
       <td style="vertical-align: middle; text-align: right; width: 1%; white-space: nowrap;">
-        <select class="${hasValueClass}" data-id="${b.bird_id}" style="padding: 2px 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 10px; min-width: 80px; max-width: 80px; transition: all 0.2s;">
+        <select class="${hasValueClass}" data-id="${b.ring_number}" style="padding: 2px 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 10px; min-width: 80px; max-width: 80px; transition: all 0.2s;">
           <option value="">Aktion...</option>
           <option value="sighted" ${currentAction === "sighted" ? "selected" : ""}>beobachtet</option>
           <option value="maybe" ${currentAction === "maybe" ? "selected" : ""}>unsicher</option>
@@ -295,17 +295,17 @@ function setupButtons() {
 function openReportPopup() {
   if (!perBirdSelection.size) { alert("Bitte mindestens einen Vogel auswählen."); return; }
   const entries = [];
-  for (const [bird_id, action] of perBirdSelection.entries()) {
-    let b = bird_id === "unringed" ? { bird_id: "", name: "unberingt", territory: "" } : birds.find(x => x.bird_id === bird_id);
+  for (const [ring_number, action] of perBirdSelection.entries()) {
+    let b = ring_number === "unringed" ? { ring_number: "", name: "unberingt", territory: "" } : birds.find(x => x.ring_number === ring_number);
     if (b) entries.push({ bird: b, action });
   }
   window._pendingSelections = entries;
   const infoEl = document.getElementById("popup-bird-info");
   if (entries.length === 1) {
     const b = entries[0].bird;
-    infoEl.textContent = b.bird_id ? `${b.name} (${b.bird_id})` : "Unberingter Vogel";
+    infoEl.textContent = b.ring_number ? `${b.name} (${b.ring_number})` : "Unberingter Vogel";
   } else {
-    const names = entries.map(e => e.bird.bird_id ? `${e.bird.name} (${e.bird.bird_id})` : "Unberingt");
+    const names = entries.map(e => e.bird.ring_number ? `${e.bird.name} (${e.bird.ring_number})` : "Unberingt");
     infoEl.innerHTML = `<strong>${entries.length} Vögel ausgewählt:</strong><ul style="margin:6px 0 0 16px; padding:0;">${names.map(n => `<li>${n}</li>`).join("")}</ul>`;
   }
   const now = new Date();
@@ -484,11 +484,11 @@ function populateLatestDropdown() {
   sel.innerHTML = `<option value="">Vogel auswählen</option>`;
   const seen = new Set();
   latestData.forEach(r => {
-    const key = `${r.bird_name} (${r.bird_id})`;
+    const key = `${r.name} (${r.ring_number})`;
     if (!seen.has(key)) {
       seen.add(key);
       const opt = document.createElement("option");
-      opt.value = r.bird_id;
+      opt.value = r.ring_number;
       opt.textContent = key;
       sel.appendChild(opt);
     }
@@ -503,60 +503,29 @@ function populateLatestDropdown() {
   }
 }
 
-// ⚠️ RENDERING OBSERVATION BLOBS - CORRECTED
 function renderLatestMap() {
   if (!latestLayer || !latestMap) return;
-
   latestLayer.clearLayers();
-
   const now = Date.now();
   let visible = [];
-
-  // Collect visible observations
   latestData.forEach(r => {
-    // ✅ FIX: Use 'lat' and 'lng' if that's what Supabase returns, 
-    // or map them from your specific field names (e.g., r.latitude, r.longitude)
-    // Assuming your Supabase view returns 'latitude' and 'longitude' based on your PHP code context
-    const lat = r.latitude; 
-    const lon = r.longitude;
-    
-    if (!lat || !lon || !r.date) return;
-    
-    // ✅ FIX: Filter by 'ring_number' instead of 'bird_id' if that's your ID field
-    const birdId = r.ring_number || r.bird_id || ""; 
-    if (latestBirdFilter && birdId !== latestBirdFilter) return;
-
+    if (!r.latitude || !r.longitude || !r.date) return;
+    if (latestBirdFilter && r.ring_number !== latestBirdFilter) return;
     const daysOld = (now - new Date(r.date)) / (1000 * 60 * 60 * 24);
     if (daysOld > latestMaxDays) return;
-
     visible.push(r);
   });
-
   if (!visible.length) return;
-
-  // Sort newest first
   visible.sort((a, b) => new Date(b.date) - new Date(a.date));
   const mostRecent = visible[0];
-
   visible.forEach(r => {
     const lat = Number(r.latitude);
     const lon = Number(r.longitude);
     if (isNaN(lat) || isNaN(lon)) return;
-
     const daysOld = (now - new Date(r.date)) / (1000 * 60 * 60 * 24);
     const opacity = Math.max(0.2, 1 - daysOld / latestMaxDays);
-
-    const color =
-      r.action === 4519311 ? "#3b82f6" :
-      r.action === 4519312 ? "#f59e0b" :
-      "#999";
-
+    const color = r.action === "sighted" ? "#3b82f6" : r.action === "maybe" ? "#f59e0b" : "#999";
     const isNewest = r === mostRecent;
-    
-    // ✅ FIX: Ensure we grab the correct name field
-    const displayName = r.name || r.bird_name || "Unknown";
-    const displayId = r.ring_number || r.bird_id || "—";
-
     const marker = L.circleMarker([lat, lon], {
       radius: isNewest ? 14 : 10,
       fillColor: color,
@@ -564,33 +533,15 @@ function renderLatestMap() {
       color: isNewest ? "#ffffff" : "transparent",
       weight: isNewest ? 3 : 0
     })
-    .bindPopup(`
-      <div>
-        <strong>${displayName}</strong> (${displayId})<br>
-        ${r.date}<br>
-        <span
-          style="font-size:11px;color:#c33;cursor:pointer;text-decoration:underline;"
-          onclick="deleteObservation(${r.id})">
-          löschen
-        </span>
-      </div>
-    `)
+    .bindPopup(`<div><strong>${r.name}</strong> (${r.ring_number || "—"})<br>${r.date}<br><span style="font-size:11px;color:#c33;cursor:pointer;text-decoration:underline;" onclick="deleteObservation(${r.id})">löschen</span></div>`)
     .addTo(latestLayer);
-
-    if (isNewest) {
-      marker.openPopup();
-      marker.bringToFront();
-    }
+    if (isNewest) { marker.openPopup(); marker.bringToFront(); }
   });
-
-  // Center on newest safely
   const newestLat = Number(mostRecent.latitude);
   const newestLon = Number(mostRecent.longitude);
-
-  if (!isNaN(newestLat) && !isNaN(newestLon)) {
-    latestMap.setView([newestLat, newestLon], 17);
-  }
+  if (!isNaN(newestLat) && !isNaN(newestLon)) latestMap.setView([newestLat, newestLon], 17);
 }
+
 async function deleteObservation(id) {
   const ok = confirm("Möchtest du wirklich die Beobachtung löschen?");
   if (!ok) return;
