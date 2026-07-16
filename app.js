@@ -99,15 +99,41 @@ window.addEventListener("load", () => {
 // ------------------------------------------------------------------------
 // LOAD FROM API
 // ------------------------------------------------------------------------
-
 async function loadIndividuals() {
   try {
     const r = await fetch("/api/individuals");
-    if (!r.ok) throw new Error("API Error: " + r.status);
-    birds = await r.json();
-    if (!Array.isArray(birds)) birds = [];
+
+    if (!r.ok) {
+      throw new Error("API Error: " + r.status);
+    }
+
+    const data = await r.json();
+
+    birds = Array.isArray(data)
+      ? data.map(row => ({
+          ...row,
+
+          // ID used for selecting the bird in the interface
+          bird_id: String(
+            row.bird_id ??
+            row.individual_id ??
+            row.id ??
+            ""
+          ),
+
+          // Actual database ID used when saving the observation
+          individual_id:
+            row.individual_id ??
+            row.id ??
+            null
+        }))
+      : [];
+
+    console.log("Loaded birds:", birds);
+
     buildColorButtons();
     renderBirds();
+
   } catch (err) {
     console.error("Failed to load birds:", err);
     alert("Bird list could not be loaded: " + err.message);
@@ -174,84 +200,116 @@ function colorPill(c) {
 
 
 
-
 function renderBirds() {
   const body = document.getElementById("birds-body");
   if (!body) return;
-  
-  if (!birds || !birds.length) {
-    body.innerHTML = "<tr><td colspan='4'>Lade Vögel...</td></tr>";
-    return;
-  }
 
   body.innerHTML = "";
 
   birds.filter(birdMatches).forEach(b => {
-    const currentAction = perBirdSelection.get(b.ring_number) || "";
+
+    // Always use a string as the Map key and HTML data-id
+    const birdId = String(b.bird_id ?? "");
+    const act = perBirdSelection.get(birdId) || "";
+
     const tr = document.createElement("tr");
-    
-    // Determine if we should add the dark class immediately
-    const hasValueClass = currentAction ? "action-select has-value" : "action-select";
 
     tr.innerHTML = `
-      <!-- Name Column: Constrained width -->
-      <td style="vertical-align: middle; text-align: left; max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px;">
-        <div style="font-weight:600; font-size: 12px; line-height: 1.2;">${b.name || ""}</div>
-        <div style="font-size: 10px; color:#666; line-height: 1.2;">${b.ring_number || ""}</div>
+      <td>
+        ${b.name || ""}
+        <div class="tag">${birdId}</div>
       </td>
-      
-      <td style="vertical-align: middle; text-align: left;">
-        ${b.territory || ""} (${b.dist || ""})<br>${b.banded_on || ""}
+
+      <td>
+        ${b.sex || ""}<br>
+        ${b.age || ""}
       </td>
-      <td style="vertical-align: middle; text-align: center;">
-        <div style="display:grid; grid-template-columns:auto auto; column-gap:4px; justify-content: center;">
-          <div>${colorPill(b.L_top)}</div><div>${colorPill(b.R_top)}</div>
-          <div>${colorPill(b.L_bottom)}</div><div>${colorPill(b.R_bottom)}</div>
+
+      <td>
+        ${b.territory || ""} (${b.dist || ""})<br>
+        ${b.banded_on || ""}
+      </td>
+
+      <td>
+        <div style="display:grid; grid-template-columns:auto auto; column-gap:16px;">
+          <div>${colorPill(b.L_top) || ""}</div>
+          <div>${colorPill(b.R_top) || ""}</div>
+
+          <div>${colorPill(b.L_bottom) || ""}</div>
+          <div>${colorPill(b.R_bottom) || ""}</div>
         </div>
       </td>
-      <!-- Action Column: Very narrow, small font -->
-      <td style="vertical-align: middle; text-align: right; width: 1%; white-space: nowrap;">
-        <select class="${hasValueClass}" data-id="${b.ring_number}" style="padding: 2px 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 10px; min-width: 80px; max-width: 80px; transition: all 0.2s;">
-          <option value="">Aktion...</option>
-          <option value="sighted" ${currentAction === "sighted" ? "selected" : ""}>beobachtet</option>
-          <option value="maybe" ${currentAction === "maybe" ? "selected" : ""}>unsicher</option>
-          <option value="catch" ${currentAction === "catch" ? "selected" : ""}>Fang</option>
-          <option value="dead_find" ${currentAction === "dead_find" ? "selected" : ""}>Totfund</option>
-        </select>
+
+      <td>
+        <button
+          type="button"
+          class="submit-btn submit-btn-ghost action-btn ${act === "sighted" ? "selected-action" : ""}"
+          data-id="${birdId}"
+          data-action="sighted">
+          beobachtet
+        </button>
+
+        <button
+          type="button"
+          class="submit-btn submit-btn-ghost action-btn ${act === "maybe" ? "selected-action" : ""}"
+          data-id="${birdId}"
+          data-action="maybe">
+          unsicher
+        </button>
+
+        <button
+          type="button"
+          class="submit-btn submit-btn-ghost action-btn ${act === "catch" ? "selected-action" : ""}"
+          data-id="${birdId}"
+          data-action="catch">
+          Fang
+        </button>
+
+        <button
+          type="button"
+          class="submit-btn submit-btn-ghost action-btn ${act === "nest_ringing" ? "selected-action" : ""}"
+          data-id="${birdId}"
+          data-action="nest_ringing">
+          Nest-Beringung
+        </button>
+
+        <button
+          type="button"
+          class="submit-btn submit-btn-ghost action-btn ${act === "dead_find" ? "selected-action" : ""}"
+          data-id="${birdId}"
+          data-action="dead_find">
+          Totfund
+        </button>
       </td>
     `;
 
     body.appendChild(tr);
   });
-          // → took this line out: <option value="nest_ringing" ${currentAction === "nest_ringing" ? "selected" : ""}>Nest.</option>
 
-  // Re-bind events and ensure class is correct on change
-  document.querySelectorAll(".action-select").forEach(select => {
-    // Function to update class based on value
-    const updateStyle = () => {
-      if (select.value) {
-        select.classList.add("has-value");
-      } else {
-        select.classList.remove("has-value");
+  document.querySelectorAll(".action-btn").forEach(btn => {
+    btn.onclick = event => {
+      event.preventDefault();
+
+      const id = String(btn.dataset.id ?? "");
+      const action = btn.dataset.action;
+      const currentAction = perBirdSelection.get(id);
+
+      if (!id) {
+        console.error("Bird button has no data-id:", btn);
+        alert("Dieser Vogel besitzt keine gültige ID.");
+        return;
       }
-    };
 
-    // Run once on load (in case value was pre-selected)
-    updateStyle();
+      if (currentAction === action) {
+        perBirdSelection.delete(id);
+      } else {
+        perBirdSelection.set(id, action);
+      }
 
-    // Run on change
-    select.onchange = function() {
-      const id = this.dataset.id;
-      const action = this.value;
-      
-      updateStyle(); // Apply dark style immediately
-
-      if (!action) perBirdSelection.delete(id);
-      else perBirdSelection.set(id, action);
+      renderBirds();
     };
   });
 }
-
 
 
 
@@ -293,24 +351,93 @@ function setupButtons() {
 // ------------------------------------------------------------------------
 
 function openReportPopup() {
-  if (!perBirdSelection.size) { alert("Bitte mindestens einen Vogel auswählen."); return; }
+  if (perBirdSelection.size === 0) {
+    alert("Bitte mindestens einen Vogel auswählen.");
+    return;
+  }
+
   const entries = [];
-  for (const [ring_number, action] of perBirdSelection.entries()) {
-    let b = ring_number === "unringed" ? { ring_number: "", name: "unberingt", territory: "" } : birds.find(x => x.ring_number === ring_number);
-    if (b) entries.push({ bird: b, action });
+
+  for (const [selectedBirdId, action] of perBirdSelection.entries()) {
+
+    const birdId = String(selectedBirdId ?? "");
+
+    let bird;
+
+    if (birdId === "unringed") {
+      bird = {
+        bird_id: "",
+        name: "unberingt",
+        territory: ""
+      };
+    } else {
+      bird = birds.find(b =>
+        String(b.bird_id ?? "") === birdId
+      );
+    }
+
+    if (!bird) {
+      console.error(
+        "Selected bird could not be found:",
+        birdId,
+        birds.map(b => ({
+          bird_id: b.bird_id,
+          type: typeof b.bird_id
+        }))
+      );
+
+      continue;
+    }
+
+    entries.push({
+      bird: bird,
+      action: action
+    });
   }
+
+  if (entries.length === 0) {
+    alert(
+      "Der ausgewählte Vogel konnte in der Vogelliste nicht gefunden werden. " +
+      "Bitte die Seite neu laden und nochmals versuchen."
+    );
+    return;
+  }
+
   window._pendingSelections = entries;
+
   const infoEl = document.getElementById("popup-bird-info");
+
   if (entries.length === 1) {
-    const b = entries[0].bird;
-    infoEl.textContent = b.ring_number ? `${b.name} (${b.ring_number})` : "Unberingter Vogel";
+    const bird = entries[0].bird;
+
+    infoEl.textContent = bird.bird_id
+      ? `${bird.name} (${bird.bird_id})`
+      : "Unberingter Vogel";
   } else {
-    const names = entries.map(e => e.bird.ring_number ? `${e.bird.name} (${e.bird.ring_number})` : "Unberingt");
-    infoEl.innerHTML = `<strong>${entries.length} Vögel ausgewählt:</strong><ul style="margin:6px 0 0 16px; padding:0;">${names.map(n => `<li>${n}</li>`).join("")}</ul>`;
+    const names = entries.map(entry => {
+      const bird = entry.bird;
+
+      return bird.bird_id
+        ? `${bird.name} (${bird.bird_id})`
+        : "Unberingt";
+    });
+
+    infoEl.innerHTML = `
+      <strong>${entries.length} Vögel ausgewählt:</strong>
+      <ul style="margin:6px 0 0 16px; padding:0;">
+        ${names.map(name => `<li>${name}</li>`).join("")}
+      </ul>
+    `;
   }
+
   const now = new Date();
-  document.getElementById("report-date").value = now.toISOString().slice(0,10);
-  document.getElementById("report-time").value = now.toTimeString().slice(0,8);
+
+  document.getElementById("report-date").value =
+    now.toISOString().slice(0, 10);
+
+  document.getElementById("report-time").value =
+    now.toTimeString().slice(0, 8);
+
   openPopup("popup-report-bg");
   initMap();
 }
