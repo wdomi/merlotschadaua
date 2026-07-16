@@ -219,8 +219,7 @@ function renderBirds() {
         <div class="tag">${birdId}</div>
       </td>
 
-
-    <<td>
+    <td>
         ${b.territory || ""} (${b.dist || ""})<br>
         ${b.banded_on || ""}
       </td>
