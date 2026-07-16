@@ -219,12 +219,8 @@ function renderBirds() {
         <div class="tag">${birdId}</div>
       </td>
 
-      <td>
-        ${b.sex || ""}<br>
-        ${b.age || ""}
-      </td>
 
-      <td>
+    <<td>
         ${b.territory || ""} (${b.dist || ""})<br>
         ${b.banded_on || ""}
       </td>
