@@ -208,7 +208,6 @@ function renderBirds() {
 
   birds.filter(birdMatches).forEach(b => {
 
-    // Always use a string as the Map key and HTML data-id
     const birdId = String(b.bird_id ?? "");
     const act = perBirdSelection.get(birdId) || "";
 
@@ -241,72 +240,58 @@ function renderBirds() {
       </td>
 
       <td>
-        <button
-          type="button"
-          class="submit-btn submit-btn-ghost action-btn ${act === "sighted" ? "selected-action" : ""}"
+        <select
+          class="bird-action-select"
           data-id="${birdId}"
-          data-action="sighted">
-          beobachtet
-        </button>
-
-        <button
-          type="button"
-          class="submit-btn submit-btn-ghost action-btn ${act === "maybe" ? "selected-action" : ""}"
-          data-id="${birdId}"
-          data-action="maybe">
-          unsicher
-        </button>
-
-        <button
-          type="button"
-          class="submit-btn submit-btn-ghost action-btn ${act === "catch" ? "selected-action" : ""}"
-          data-id="${birdId}"
-          data-action="catch">
-          Fang
-        </button>
-
-        <button
-          type="button"
-          class="submit-btn submit-btn-ghost action-btn ${act === "nest_ringing" ? "selected-action" : ""}"
-          data-id="${birdId}"
-          data-action="nest_ringing">
-          Nest-Beringung
-        </button>
-
-        <button
-          type="button"
-          class="submit-btn submit-btn-ghost action-btn ${act === "dead_find" ? "selected-action" : ""}"
-          data-id="${birdId}"
-          data-action="dead_find">
-          Totfund
-        </button>
+          style="
+            width:100%;
+            min-width:150px;
+            padding:7px 9px;
+            border:1px solid #ccc;
+            border-radius:6px;
+            background:white;
+            font-size:14px;
+          "
+        >
+          <option value="">Keine Auswahl</option>
+          <option value="sighted" ${act === "sighted" ? "selected" : ""}>
+            beobachtet
+          </option>
+          <option value="maybe" ${act === "maybe" ? "selected" : ""}>
+            unsicher
+          </option>
+          <option value="catch" ${act === "catch" ? "selected" : ""}>
+            Fang
+          </option>
+          <option value="nest_ringing" ${act === "nest_ringing" ? "selected" : ""}>
+            Nest-Beringung
+          </option>
+          <option value="dead_find" ${act === "dead_find" ? "selected" : ""}>
+            Totfund
+          </option>
+        </select>
       </td>
     `;
 
     body.appendChild(tr);
   });
 
-  document.querySelectorAll(".action-btn").forEach(btn => {
-    btn.onclick = event => {
-      event.preventDefault();
-
-      const id = String(btn.dataset.id ?? "");
-      const action = btn.dataset.action;
-      const currentAction = perBirdSelection.get(id);
+  document.querySelectorAll(".bird-action-select").forEach(select => {
+    select.onchange = () => {
+      const id = String(select.dataset.id ?? "");
+      const action = select.value;
 
       if (!id) {
-        console.error("Bird button has no data-id:", btn);
+        console.error("Bird dropdown has no data-id:", select);
         alert("Dieser Vogel besitzt keine gültige ID.");
         return;
       }
 
-      if (currentAction === action) {
+      if (action === "") {
         perBirdSelection.delete(id);
       } else {
         perBirdSelection.set(id, action);
       }
-
-      renderBirds();
     };
   });
 }
