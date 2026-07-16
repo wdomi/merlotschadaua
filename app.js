@@ -233,7 +233,6 @@ function renderBirds() {
         <div style="display:grid; grid-template-columns:auto auto; column-gap:16px;">
           <div>${colorPill(b.L_top) || ""}</div>
           <div>${colorPill(b.R_top) || ""}</div>
-
           <div>${colorPill(b.L_bottom) || ""}</div>
           <div>${colorPill(b.R_bottom) || ""}</div>
         </div>
@@ -245,30 +244,19 @@ function renderBirds() {
           data-id="${birdId}"
           style="
             width:100%;
-            min-width:150px;
-            padding:7px 9px;
-            border:1px solid #ccc;
+            min-width:160px;
+            padding:6px 8px;
             border-radius:6px;
-            background:white;
-            font-size:14px;
+            border:1px solid #bbb;
+            font-weight:600;
           "
         >
-          <option value="">Keine Auswahl</option>
-          <option value="sighted" ${act === "sighted" ? "selected" : ""}>
-            beobachtet
-          </option>
-          <option value="maybe" ${act === "maybe" ? "selected" : ""}>
-            unsicher
-          </option>
-          <option value="catch" ${act === "catch" ? "selected" : ""}>
-            Fang
-          </option>
-          <option value="nest_ringing" ${act === "nest_ringing" ? "selected" : ""}>
-            Nest-Beringung
-          </option>
-          <option value="dead_find" ${act === "dead_find" ? "selected" : ""}>
-            Totfund
-          </option>
+          <option value="">▼ Aktion wählen</option>
+          <option value="sighted" ${act==="sighted"?"selected":""}>🟢 beobachtet</option>
+          <option value="maybe" ${act==="maybe"?"selected":""}>🟠 unsicher</option>
+          <option value="catch" ${act==="catch"?"selected":""}>🔵 Fang</option>
+          <option value="nest_ringing" ${act==="nest_ringing"?"selected":""}>🟣 Nest-Beringung</option>
+          <option value="dead_find" ${act==="dead_find"?"selected":""}>🔴 Totfund</option>
         </select>
       </td>
     `;
@@ -277,12 +265,33 @@ function renderBirds() {
   });
 
   document.querySelectorAll(".bird-action-select").forEach(select => {
+
+    const colors = {
+      "": "#f8f8f8",
+      sighted: "#2e8b57",
+      maybe: "#f0ad4e",
+      catch: "#0275d8",
+      nest_ringing: "#7b3fc6",
+      dead_find: "#c9302c"
+    };
+
+    function updateColor() {
+      select.style.backgroundColor = colors[select.value];
+      select.style.color = select.value ? "white" : "black";
+      select.style.borderColor = colors[select.value];
+      select.style.fontWeight = select.value ? "600" : "400";
+    }
+
+    updateColor();
+
     select.onchange = () => {
+
+      updateColor();
+
       const id = String(select.dataset.id ?? "");
       const action = select.value;
 
       if (!id) {
-        console.error("Bird dropdown has no data-id:", select);
         alert("Dieser Vogel besitzt keine gültige ID.");
         return;
       }
@@ -293,7 +302,9 @@ function renderBirds() {
         perBirdSelection.set(id, action);
       }
     };
+
   });
+
 }
 
 
