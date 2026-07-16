@@ -214,47 +214,47 @@ function renderBirds() {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-      <td>
-        ${b.name || ""}
-        <div class="tag">${birdId}</div>
-      </td>
+  <td>
+    ${b.name || ""}
+    <div class="tag">${birdId}</div>
+  </td>
 
-    <td>
-        ${b.territory || ""} (${b.dist || ""})<br>
-        ${b.banded_on || ""}
-      </td>
+  <td>
+    ${b.territory || ""} (${b.dist || ""})<br>
+    ${b.banded_on || ""}
+  </td>
 
-      <td>
-        <div style="display:grid; grid-template-columns:auto auto; column-gap:16px;">
-          <div>${colorPill(b.L_top) || ""}</div>
-          <div>${colorPill(b.R_top) || ""}</div>
-          <div>${colorPill(b.L_bottom) || ""}</div>
-          <div>${colorPill(b.R_bottom) || ""}</div>
-        </div>
-      </td>
+  <td>
+    <div style="display:grid; grid-template-columns:auto auto; column-gap:16px;">
+      <div>${colorPill(b.L_top) || ""}</div>
+      <div>${colorPill(b.R_top) || ""}</div>
+      <div>${colorPill(b.L_bottom) || ""}</div>
+      <div>${colorPill(b.R_bottom) || ""}</div>
+    </div>
+  </td>
 
-      <td>
-        <select
-          class="bird-action-select"
-          data-id="${birdId}"
-          style="
-            width:100%;
-            min-width:160px;
-            padding:6px 8px;
-            border-radius:6px;
-            border:1px solid #bbb;
-            font-weight:600;
-          "
-        >
-          <option value="">▼ Aktion wählen</option>
-          <option value="sighted" ${act==="sighted"?"selected":""}>🟢 beobachtet</option>
-          <option value="maybe" ${act==="maybe"?"selected":""}>🟠 unsicher</option>
-          <option value="catch" ${act==="catch"?"selected":""}>🔵 Fang</option>
-          <option value="nest_ringing" ${act==="nest_ringing"?"selected":""}>🟣 Nest-Beringung</option>
-          <option value="dead_find" ${act==="dead_find"?"selected":""}>🔴 Totfund</option>
-        </select>
-      </td>
-    `;
+  <td>
+    <select
+      class="bird-action-select"
+      data-id="${birdId}"
+      style="
+        width:100%;
+        min-width:160px;
+        padding:6px 8px;
+        border-radius:6px;
+        border:1px solid #bbb;
+        font-weight:600;
+      "
+    >
+      <option value="">▼ Aktion wählen</option>
+      <option value="sighted" ${act==="sighted"?"selected":""}>🟢 beobachtet</option>
+      <option value="maybe" ${act==="maybe"?"selected":""}>🟠 unsicher</option>
+      <option value="catch" ${act==="catch"?"selected":""}>🔵 Fang</option>
+      <option value="nest_ringing" ${act==="nest_ringing"?"selected":""}>🟣 Nest-Beringung</option>
+      <option value="dead_find" ${act==="dead_find"?"selected":""}>🔴 Totfund</option>
+    </select>
+  </td>
+`;
 
     body.appendChild(tr);
   });
